@@ -114,7 +114,7 @@ def run_install(api):
         api.ui_log("DeepSeek Harness 已启动, 正在打开界面 ...", "ok")
         api.ui_status("正在打开 DeepSeek Harness 界面 ...")
         try:
-            api._window.title = "dsh · Mr.chen"
+            api._window.title = "dsh · " + DSH_ACTUAL_URL[0].replace("http://", "").replace("https://", "")
         except Exception:
             pass
         time.sleep(0.6)

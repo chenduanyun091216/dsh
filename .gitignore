@@ -1,0 +1,22 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ---- 虚拟环境 / 构建产物 ----
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# ---- 日志 ----
+*.log
+
+# ---- 本地备份(重构前单文件, 不入库) ----
+dsh_app.original.py
+
+# ---- 测试/沙箱临时产物 ----
+dsh_usage_*/
+probe_*/
+_usage_test_*

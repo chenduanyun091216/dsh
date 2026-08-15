@@ -16,9 +16,9 @@ import threading
 import time
 
 from .api import Api
-from .assets import (INJECT_TITLEBAR_JS, NOFLASH_SCRIPT, NPROC, PAGE_HTML,
-                     WHALE_ICO_B64)
-from .utils import kill_tree, no_window
+from .assets import (DSH_URL, INJECT_TITLEBAR_JS, NOFLASH_SCRIPT, NPROC,
+                     PAGE_HTML, WHALE_ICO_B64)
+from .utils import js_str, kill_tree, no_window
 
 # ============================================================
 # 入口
@@ -92,6 +92,8 @@ def main():
     window.events.loaded += lambda *_a: api.eval_js(INJECT_TITLEBAR_JS)
     # 每次页面加载后同步缩放(标题栏不缩放, 仅内容区)
     window.events.loaded += lambda *_a: api.eval_js("applyZoom(" + str(api._zoom) + ")")
+    # 安装页标题栏显示服务地址(Harness 页由注入脚本自行取 location.origin, 此处为空操作)
+    window.events.loaded += lambda *_a: api.eval_js("setTitleAddr(" + js_str(DSH_URL) + ")")
     # 窗口显示后设置任务栏图标(黑色鲸鱼)
     # 注意: 不能用 .NET 的 System.Drawing.Icon 对象(与 WinForms 关闭时的释放顺序冲突,
     #       会导致关闭窗口时 .NET 未处理异常崩溃, 退出码 0xCFFFFFFF/1);

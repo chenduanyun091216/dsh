@@ -69,14 +69,19 @@ def install_node_msi(api):
         with urllib.request.urlopen(req, timeout=60) as r, open(dest, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             done = 0
+            last_pct = -1
             while True:
                 chunk = r.read(65536)
                 if not chunk:
                     break
                 f.write(chunk)
                 done += len(chunk)
+                # 性能: 按整数百分比节流上报, 避免每 64KB 触发一次桥调用
                 if total:
-                    api.ui_progress(10 + 30 * done / total)
+                    pct = int(10 + 30 * done / total)
+                    if pct != last_pct:
+                        last_pct = pct
+                        api.ui_progress(pct)
         api.ui_log(f"> msiexec /i {fname} /qn /norestart (静默安装)", "cmd")
         ok = stream_cmd(["msiexec", "/i", dest, "/qn", "/norestart"],
                         api, timeout=2400, label="Node.js 安装 (MSI)")

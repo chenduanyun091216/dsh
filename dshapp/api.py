@@ -18,9 +18,9 @@ import tempfile
 import threading
 import urllib.request
 
-from .assets import DS_PRICE_DEFAULT, DS_PRICES
+from .assets import DSH_ACTUAL_URL, DSH_URL, DS_PRICE_DEFAULT, DS_PRICES, PAGE_HTML
 from .flow import run_install
-from .utils import js_str
+from .utils import js_str, open_folder
 
 # ============================================================
 # JS <-> Python 桥
@@ -43,6 +43,11 @@ class Api:
         self._zoom = self._load_zoom()
         self._usage_cache = None      # (日志指纹, 统计结果) 缓存, 避免每次刷新全量解压日志
         self._usage_lock = threading.Lock()
+        # 终端输出批量合并: 高频输出时合并为每 ~50ms 一次桥调用, 降低 UI 线程压力
+        self._log_lock = threading.Lock()
+        self._log_buf = []
+        self._log_timer = None
+        self._pinned = None        # 置顶状态(懒初始化; js_api 桥回调在后台线程, 不走 pywebview 内部状态)
 
     # ---- 缩放(类似浏览器缩放, 基于 WebView2 ZoomFactor, 持久化) ----
     def _zoom_file(self):
@@ -173,71 +178,113 @@ class Api:
         return sig
 
     def _scan_usage(self, root, today_start):
-        """全量扫描一次会话日志, 统计 今日 的 token/cost/requests。
+        """扫描会话日志, 统计 今日 的 token/cost/requests。
 
         usage 口径与官网一致: 输入(缓存未命中) + 缓存命中 + 输出
         (含 reasoningTokens 思考 token, 官方按输出价格计费)。
         消费为按官方价目的本地估算(≈)。
+
+        性能优化:
+          - mtime 预过滤: 会话日志按时间追加, 今天之前未修改过的文件不可能
+            含今日事件, 直接跳过, 避免解压扫描全部历史日志(宠物面板刷新的
+            主要开销);
+          - 流式解压: zstd 用 decompressobj 增量解压并按行切分, 普通 jsonl
+            逐行读取, 内存占用有界, 不再整文件读入。
         """
         import zstandard as _zstd
-        dctx = _zstd.ZstdDecompressor()
         agg = {"tokens": 0, "cost": 0.0, "requests": 0}
+
+        def _consume(raw, state):
+            """解析一行事件并累加(与官网计费口径一致)。"""
+            try:
+                ev = json.loads(raw)
+            except Exception:
+                return
+            if not isinstance(ev, dict):
+                return
+            t = ev.get("type")
+            if t == "request/context":
+                m = ((ev.get("data") or {}).get("model") or "").strip()
+                if m:
+                    state["model"] = m
+            elif t == "request/header":
+                cfg = ((ev.get("data") or {}).get("header") or {}).get("config") or {}
+                m = (cfg.get("model") or "").strip()
+                if m:
+                    state["model"] = m
+            elif t == "assistant/message":
+                ev_time = ev.get("time")
+                if not isinstance(ev_time, (int, float)):
+                    return
+                usage = ((ev.get("data") or {}).get("usage") or {})
+                if not isinstance(usage, dict):
+                    return
+                inp = usage.get("inputTokens") or 0
+                out = usage.get("outputTokens") or 0
+                cr = usage.get("cacheReadTokens") or 0
+                cw = usage.get("cacheWriteTokens") or 0
+                rt = usage.get("reasoningTokens") or 0
+                if inp <= 0 and out <= 0 and cr <= 0 and cw <= 0 and rt <= 0:
+                    return
+                # 思考/推理 token(reasoningTokens)官方按输出价格计费,
+                # 且不计入 outputTokens, 须并入输出后计费/计数。
+                out += rt
+                miss, hit, outp = DS_PRICES.get((state["model"] or "").lower(), DS_PRICE_DEFAULT)
+                c = (inp * miss + (cr + cw) * hit + out * outp) / 1e6
+                n = inp + out + cr + cw
+                if ev_time >= today_start:
+                    agg["tokens"] += n
+                    agg["cost"] += c
+                    agg["requests"] += 1
+
         for dirpath, _dirs, files in os.walk(root):
             for name in files:
                 if not (name.endswith(".jsonl.zstd") or name.endswith(".jsonl")):
                     continue
                 path = os.path.join(dirpath, name)
                 try:
-                    if name.endswith(".zstd"):
-                        with open(path, "rb") as f:
-                            text = dctx.stream_reader(f).read().decode("utf-8", "replace")
-                    else:
-                        with open(path, "r", encoding="utf-8", errors="replace") as f:
-                            text = f.read()
+                    st = os.stat(path)
+                    # mtime 预过滤: 今天之前未修改过的文件直接跳过
+                    if st.st_mtime * 1000 < today_start:
+                        continue
                 except Exception:
                     continue
-                cur_model = None
-                for line in text.splitlines():
-                    try:
-                        ev = json.loads(line)
-                    except Exception:
-                        continue
-                    if not isinstance(ev, dict):
-                        continue
-                    t = ev.get("type")
-                    if t == "request/context":
-                        m = ((ev.get("data") or {}).get("model") or "").strip()
-                        if m:
-                            cur_model = m
-                    elif t == "request/header":
-                        cfg = ((ev.get("data") or {}).get("header") or {}).get("config") or {}
-                        m = (cfg.get("model") or "").strip()
-                        if m:
-                            cur_model = m
-                    elif t == "assistant/message":
-                        ev_time = ev.get("time")
-                        if not isinstance(ev_time, (int, float)):
-                            continue
-                        usage = ((ev.get("data") or {}).get("usage") or {})
-                        if not isinstance(usage, dict):
-                            continue
-                        inp = usage.get("inputTokens") or 0
-                        out = usage.get("outputTokens") or 0
-                        cr = usage.get("cacheReadTokens") or 0
-                        cw = usage.get("cacheWriteTokens") or 0
-                        rt = usage.get("reasoningTokens") or 0
-                        if inp <= 0 and out <= 0 and cr <= 0 and cw <= 0 and rt <= 0:
-                            continue
-                        # 思考/推理 token(reasoningTokens)官方按输出价格计费,
-                        # 且不计入 outputTokens, 须并入输出后计费/计数。
-                        out += rt
-                        miss, hit, outp = DS_PRICES.get((cur_model or "").lower(), DS_PRICE_DEFAULT)
-                        c = (inp * miss + (cr + cw) * hit + out * outp) / 1e6
-                        n = inp + out + cr + cw
-                        if ev_time >= today_start:
-                            agg["tokens"] += n
-                            agg["cost"] += c
-                            agg["requests"] += 1
+                state = {"model": None}
+                try:
+                    if name.endswith(".zstd"):
+                        # 重要: DSH 会话日志是"每写一次追加一个新 zstd 帧"(单文件可达
+                        # 上万帧)。decompressobj 只能解第一帧(继续喂数据会抛
+                        # "cannot use a decompressobj multiple times"), 必须用
+                        # stream_reader + read_across_frames=True 跨帧读取;
+                        # 分块 read(1 MiB)保持内存有界, 逐行切分。
+                        reader = _zstd.ZstdDecompressor().stream_reader(
+                            open(path, "rb"), read_across_frames=True)
+                        try:
+                            buf = b""
+                            while True:
+                                chunk = reader.read(1 << 20)
+                                if not chunk:
+                                    break
+                                buf += chunk
+                                while True:
+                                    nl = buf.find(b"\n")
+                                    if nl < 0:
+                                        break
+                                    raw = buf[:nl]
+                                    buf = buf[nl + 1:]
+                                    if raw.strip():
+                                        _consume(raw.decode("utf-8", "replace"), state)
+                            if buf.strip():
+                                _consume(buf.decode("utf-8", "replace"), state)
+                        finally:
+                            reader.close()
+                    else:
+                        with open(path, "r", encoding="utf-8", errors="replace") as f:
+                            for line in f:
+                                if line.strip():
+                                    _consume(line, state)
+                except Exception:
+                    continue
         return {"ok": True,
                 "data": {"today": {"tokens": int(agg["tokens"]),
                                    "cost": round(agg["cost"], 4),
@@ -281,7 +328,7 @@ class Api:
     def _settings_path(self):
         return os.path.join(os.path.expanduser("~"), ".dsh", "settings.yaml")
 
-    def setTheme(self, pref):
+    def setTheme(self, pref, force=False):
         """切换 DSH 主题偏好(light/dark/system)。
 
         直接改写 ~/.dsh/settings.yaml 的 ui-theme.preference: DSH 的
@@ -289,6 +336,9 @@ class Api:
         settings/document-updated, 客户端 ThemeRuntime.adopt() 随即发布
         theme/change, 界面实时应用新主题 —— 不再依赖模拟点击设置面板,
         不受 DSH 界面结构/类名变化影响。文件其余内容与注释原样保留。
+
+        force=True 时即使文件已是目标值也重写一次(文件监听偶尔漏事件的
+        自愈手段: 重写会再次触发 chokidar, 让 DSH 重新应用)。
         """
         if pref not in ("light", "dark", "system"):
             return {"ok": False, "error": "bad_pref"}
@@ -328,7 +378,7 @@ class Api:
                     continue
                 last_child = len(out)
             out.append(content)
-        if pref_idx is not None and not modified:
+        if pref_idx is not None and not modified and not force:
             return {"ok": True, "preference": pref}   # 已是目标值, 无需写盘
         if pref_idx is None:
             if theme_idx is not None:
@@ -340,17 +390,42 @@ class Api:
                 out.append("ui-theme:")
                 out.append("  preference: " + pref)
             modified = True
-        if not modified:
+        if not modified and not force:
             return {"ok": True, "preference": pref}
         try:
             new_text = "\n".join(out) + "\n"
-            tmp = path + ".tmp"
-            with open(tmp, "w", encoding="utf-8", newline="") as f:
-                f.write(new_text)
-            os.replace(tmp, path)
+            try:
+                tmp = path + ".tmp"
+                with open(tmp, "w", encoding="utf-8", newline="") as f:
+                    f.write(new_text)
+                os.replace(tmp, path)
+            except OSError:
+                # 兜底: tmp+rename 被占用/拦截(如杀软)时直接写原文件,
+                # DSH 的文件监听同样能感知变更。
+                with open(path, "w", encoding="utf-8", newline="") as f:
+                    f.write(new_text)
         except Exception as e:
             return {"ok": False, "error": str(e)[:100]}
         return {"ok": True, "preference": pref}
+
+    def getTheme(self):
+        """读取当前 DSH 主题偏好(light/dark/system)。
+
+        来源为 ~/.dsh/settings.yaml(唯一事实来源), 供标题栏主题按钮判定
+        当前主题 —— 不再依赖 CSS 样式计算(colorScheme 在部分 WebView2
+        版本返回 "light dark" 等值, 样式检测可能误判导致切换成无操作)。
+        """
+        try:
+            path = self._settings_path()
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    if line.lstrip().startswith("preference:"):
+                        v = line.partition(":")[2].strip().strip('"').strip("'")
+                        if v in ("light", "dark", "system"):
+                            return {"ok": True, "theme": v}
+            return {"ok": False, "error": "no_preference"}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:100]}
 
     def openDeepSeekSite(self):
         """一键跳转 DeepSeek 官网(默认浏览器)。"""
@@ -435,7 +510,7 @@ class Api:
         return True
 
     def moveWindowTo(self, x, y):
-        """自绘拖拽: 把窗口移动到 (x, y)(逻辑像素)。修复缩放后 pywebview 内置拖拽错位。"""
+        """自绘拖拽(兜底): 把窗口移动到 (x, y)(逻辑像素)。修复缩放后 pywebview 内置拖拽错位。"""
         if self._window is None:
             return True
         try:
@@ -443,6 +518,82 @@ class Api:
         except Exception as e:
             print("[win]", e, file=sys.stderr)
         return True
+
+    # ---- 原生窗口拖拽/缩放(推荐路径) ----
+    # 旧实现每帧走一次 JS→Python 桥调用(mousemove→rAF→pywebview 桥→SetWindowPos),
+    # 桥延迟 + 跨线程往返使窗口跟不上光标, 产生"不顺滑/顿挫"感。
+    # 这里改为一次性把 WM_NCLBUTTONDOWN + 命中码发给顶层窗体, 由操作系统接管
+    # 整个移动/缩放模态循环: 拖动期间零桥调用, 光标与窗口完全同步, 顺滑度与
+    # 系统标题栏一致; 缩放时最小尺寸由 WinForms MinimumSize(WM_GETMINMAXINFO)自动生效。
+    # 物理像素坐标由系统处理, 不再受 devicePixelRatio/缩放影响, 也不会错位。
+    WM_NCLBUTTONDOWN = 0x00A1
+    HT_CAPTION = 2
+    HT_LEFT, HT_RIGHT, HT_TOP = 10, 11, 12
+    HT_TOPLEFT, HT_TOPRIGHT = 13, 14
+    HT_BOTTOM, HT_BOTTOMLEFT, HT_BOTTOMRIGHT = 15, 16, 17
+    HT_MAP = {
+        "n": HT_TOP, "s": HT_BOTTOM, "e": HT_RIGHT, "w": HT_LEFT,
+        "ne": HT_TOPRIGHT, "nw": HT_TOPLEFT,
+        "se": HT_BOTTOMRIGHT, "sw": HT_BOTTOMLEFT,
+    }
+
+    def _native_hwnd(self):
+        """顶层窗体 HWND(用于 Win32 消息)。"""
+        if self._window is None:
+            return None
+        try:
+            return int(self._window.native.Handle)
+        except Exception:
+            return None
+
+    def _native_drag(self, ht_code):
+        """启动一次系统原生窗口移动/缩放循环(WM_NCLBUTTONDOWN + 命中码)。
+
+        必须在 UI 线程上发送该消息: 系统根据目标线程的输入状态(GetKeyState)决定
+        是否进入模态移动循环, 而 pywebview 的 JS 桥在后台线程执行 Python 方法,
+        直接 SendMessage 时状态读不到"左键按下", 循环不启动 → 窗口拖不动。
+        因此用 form.Invoke 封送到 UI 线程执行; 模态循环期间 UI 线程在内部泵消息,
+        直到松开鼠标按键才返回(桥调用线程同步阻塞, 属预期)。
+        """
+        hwnd = self._native_hwnd()
+        if not hwnd:
+            return True
+        try:
+            import ctypes
+            from ctypes import wintypes
+            user32 = ctypes.windll.user32
+
+            def _do():
+                try:
+                    user32.ReleaseCapture()
+                    pt = wintypes.POINT()
+                    user32.GetCursorPos(ctypes.byref(pt))
+                    lparam = (pt.y << 16) | (pt.x & 0xFFFF)
+                    user32.SendMessageW(hwnd, self.WM_NCLBUTTONDOWN, ht_code, lparam)
+                except Exception as e2:
+                    print("[win]", e2, file=sys.stderr)
+
+            form = self._window.native
+            if getattr(form, "InvokeRequired", False):
+                from System import Action
+                form.Invoke(Action(_do))
+            else:
+                _do()
+        except Exception as e:
+            print("[win]", e, file=sys.stderr)
+        return True
+
+    def startNativeDrag(self):
+        """自绘标题栏拖拽(推荐): HTCAPTION, 系统原生移动循环。
+        窗口最大化时按住拖动会自动还原并继续移动(与系统标题栏行为一致)。"""
+        return self._native_drag(self.HT_CAPTION)
+
+    def startNativeResize(self, edge):
+        """无边框边缘缩放(推荐): n/s/e/w/ne/nw/se/sw → 对应 HT 命中码。"""
+        ht = self.HT_MAP.get(edge)
+        if ht is None:
+            return True
+        return self._native_drag(ht)
 
     # ---- Python 调用 JS ----
     def eval_js(self, code):
@@ -458,13 +609,48 @@ class Api:
 
     def ui_stage(self, text):
         self.eval_js("setStage(" + js_str(text) + ")")
+        # 动态任务栏标题: 最小化/Alt-Tab 也能看到当前阶段
+        self._set_window_title("dsh · " + text)
+
+    def _set_window_title(self, title):
+        if self._window is None or self._closed:
+            return
+        try:
+            self._window.title = title
+        except Exception:
+            pass
 
     def ui_progress(self, v):
         self.eval_js("setProgress(" + str(v) + ")")
 
     def ui_log(self, text, cls=""):
-        obj = {"text": text, "cls": cls}
-        self.eval_js("appendLog(" + json.dumps(obj, ensure_ascii=False) + ")")
+        # 性能: 终端输出可能高频(如 npx 下载进度), 逐行桥调用会压垮 UI 线程。
+        # 先入缓冲区, 由 50ms 定时器合并为一次 appendLogs 调用(顺序保持)。
+        with self._log_lock:
+            self._log_buf.append({"text": text, "cls": cls})
+            if self._log_timer is None:
+                self._log_timer = threading.Timer(0.05, self._flush_logs)
+                self._log_timer.daemon = True
+                self._log_timer.start()
+
+    def _flush_logs(self):
+        with self._log_lock:
+            batch = self._log_buf
+            self._log_buf = []
+            self._log_timer = None
+        if batch:
+            self.eval_js("appendLogs(" + json.dumps(batch, ensure_ascii=False) + ")")
+
+    def flush_logs_now(self):
+        """立即冲刷日志缓冲(用于退出/跳页前, 避免丢行)。"""
+        with self._log_lock:
+            batch = self._log_buf
+            self._log_buf = []
+            if self._log_timer is not None:
+                self._log_timer.cancel()
+                self._log_timer = None
+        if batch:
+            self.eval_js("appendLogs(" + json.dumps(batch, ensure_ascii=False) + ")")
 
     def ask(self, text, timeout=3600):
         """弹出 是/否 询问框, 阻塞等待用户选择; 返回 bool。"""
@@ -482,3 +668,105 @@ class Api:
 
     def exit_soon(self, delay=1.2):
         threading.Timer(delay, self.closeWindow).start()
+
+    # ---- 标题栏增强(置顶 / 数据目录 / 返回安装器) ----
+    def toggleOnTop(self):
+        """切换窗口置顶; 返回 {ok, on_top}。
+
+        注意: pywebview 的 js_api 回调在【后台线程】执行(util.js_bridge_call 明确
+        注释 "executed in a separate thread"), 而 winforms 的 set_on_top 直接写
+        控件 TopMost 未做封送 —— 从后台线程访问 WinForms 控件会触发 .NET 跨线程
+        未处理异常, 进程以 0xCFFFFFFF 崩溃。
+        因此 Windows 上通过 form.Invoke 封送到 UI 线程执行; 其它平台回退到
+        pywebview 的 on_top 属性。置顶状态由本对象自行维护(_pinned)。
+        """
+        if self._window is None:
+            return {"ok": False, "error": "no_window"}
+        try:
+            if self._pinned is None:
+                try:
+                    self._pinned = bool(getattr(self._window, "on_top", False))
+                except Exception:
+                    self._pinned = False
+            new = not self._pinned
+            form = None
+            if os.name == "nt":
+                try:
+                    form = self._window.native
+                except Exception:
+                    form = None
+            if form is not None:
+                from System import Action
+                ok = [False]
+
+                def _apply():
+                    try:
+                        form.TopMost = new
+                        ok[0] = True
+                    except Exception:
+                        pass
+
+                try:
+                    form.Invoke(Action(_apply))
+                except Exception:
+                    pass
+                if not ok[0]:
+                    return {"ok": False, "error": "set_on_top failed"}
+            else:
+                # 非 Windows 或无 native(如测试桩): 直接走 pywebview 属性
+                self._window.on_top = new
+            self._pinned = new
+            return {"ok": True, "on_top": new}
+        except Exception as e:
+            return {"ok": False, "error": str(e)[:100]}
+
+    def openDataDir(self):
+        """打开 DSH 数据目录(~/.dsh)。"""
+        return open_folder(os.path.expanduser("~/.dsh"))
+
+    def openUrl(self, url):
+        """在默认浏览器中打开指定地址(标题栏服务地址点击)。"""
+        url = (url or "").strip()
+        if not url:
+            return False
+        if not url.startswith(("http://", "https://")):
+            url = "http://" + url
+        try:
+            if os.name == "nt":
+                os.startfile(url)
+            else:
+                import webbrowser
+                webbrowser.open(url)
+            return True
+        except Exception:
+            try:
+                import webbrowser
+                webbrowser.open(url)
+                return True
+            except Exception:
+                return False
+
+    def backToInstaller(self):
+        """从 Harness 页面返回安装器首页, 并自动重新检查环境。
+
+        页面加载完成后自动执行 run_install(与首次安装同一流程): Node.js 缺失
+        会询问并安装、服务未运行会尝试启动; 一切正常后自动 load_url 回到工作页面。
+        """
+        if self._window is None or self._closed:
+            return False
+        try:
+            self._window.load_html(PAGE_HTML)
+        except Exception:
+            return False
+
+        t = threading.Timer(1.0, self._recheck_and_return)  # 等页面加载 + JS 桥就绪
+        t.daemon = True
+        t.start()
+        return True
+
+    def _recheck_and_return(self):
+        """返回安装器后的自动重检: 走 run_install, 正常则自动回到工作页面。"""
+        try:
+            run_install(self)
+        except Exception:
+            pass

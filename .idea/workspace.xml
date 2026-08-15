@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3d6e1522-c4c6-44af-ac3c-ec983352c0d6" name="更改" comment="">
+      <change afterPath="$PROJECT_DIR$/images/img_1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/img_2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/img_3.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/assets.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/assets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/flow.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/flow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/gui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/node_install.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/node_install.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dshapp/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/dshapp/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_flow.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_flow.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.432376465236834" />
+      <entry key="MS500" value="2.0669724891516497" />
+      <entry key="S2" value="4.367929554414804" />
+      <entry key="S5" value="9.388168531315166" />
+      <entry key="S10" value="15.663243081610764" />
+      <entry key="S30" value="26.01692898512663" />
+      <entry key="S60" value="31.142485188581592" />
+      <entry key="M2" value="34.61210702104843" />
+      <entry key="M5" value="37.1140749345872" />
+      <entry key="M10" value="38.033225572013805" />
+      <entry key="M15" value="38.350030348885014" />
+      <entry key="M30" value="38.6722470453292" />
+      <entry key="H1" value="38.837297863269036" />
+      <entry key="H2" value="39.06751732305115" />
+      <entry key="H4" value="40.30028254691349" />
+      <entry key="D1" value="47.32198274723057" />
+      <entry key="W1" value="50.38904393246943" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="4.7069756700244944E-229" />
+      <entry key="M2" value="6.860740244335515E-115" />
+      <entry key="M5" value="2.16047074899758E-46" />
+      <entry key="M10" value="1.4698539890062494E-23" />
+      <entry key="M15" value="6.000435847040253E-16" />
+      <entry key="M30" value="2.449578708072118E-8" />
+      <entry key="H1" value="1.5651130016941633E-4" />
+      <entry key="H2" value="0.012510447640648847" />
+      <entry key="H4" value="0.11185011238549936" />
+      <entry key="D1" value="0.6941277453002701" />
+      <entry key="W1" value="0.9491797980614994" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.3683178902165611" />
+      <entry key="MS500" value="2.0472450052919418" />
+      <entry key="S2" value="4.355429694781231" />
+      <entry key="S5" value="9.371056888387631" />
+      <entry key="S10" value="15.646387045949897" />
+      <entry key="S30" value="26.006703152215213" />
+      <entry key="S60" value="31.13619849888795" />
+      <entry key="M2" value="34.60855919162151" />
+      <entry key="M5" value="37.112537866822585" />
+      <entry key="M10" value="38.0324352553216" />
+      <entry key="M15" value="38.34949845647587" />
+      <entry key="M30" value="38.6719785710795" />
+      <entry key="H1" value="38.83731944470887" />
+      <entry key="H2" value="39.07995881226772" />
+      <entry key="H4" value="40.412092788745426" />
+      <entry key="D1" value="48.016098614523465" />
+      <entry key="W1" value="51.338221706432826" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3HusXhgF2LK13S7NcBzVb1lAdXu" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.deepseek_harness_installer.executor": "Run",
+    "Python.dsh_app.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager" selected="Python.dsh_app">
+    <configuration name="deepseek_harness_installer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="dsh" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/deepseek_harness_installer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dsh_app" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="dsh" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dsh_app.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.dsh_app" />
+        <item itemvalue="Python.deepseek_harness_installer" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-50341a9f1f9c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.26222.68" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="3d6e1522-c4c6-44af-ac3c-ec983352c0d6" name="更改" comment="" />
+      <created>1786729329971</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1786729329971</updated>
+      <workItem from="1786729331002" duration="25754000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/dsh$dsh_app.coverage" NAME="dsh_app 覆盖结果" MODIFIED="1786796937131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/dsh$app.coverage" NAME="app 覆盖结果" MODIFIED="1786728341209" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/dsh$deepseek_harness_installer.coverage" NAME="deepseek_harness_installer 覆盖结果" MODIFIED="1786760568659" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>

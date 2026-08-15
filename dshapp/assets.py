@@ -192,17 +192,22 @@ PAGE_HTML = """<!DOCTYPE html>
     width:24px; height:24px; border-radius:7px; font-size:11px; font-weight:800;
     background:linear-gradient(135deg,#0d9488,#2dd4bf); color:#042f2e;
   }
-  .tb-logo img { width:15px; height:15px; display:block; }
+  .tb-logo img { width:15px; height:15px; display:block; transition:transform .2s ease; }
+  .tb-logo:hover img { transform:translateY(-1px) scale(1.12); }
   .tb-title {
-    font-size:15px; font-weight:700; color:#cbd5e1; letter-spacing:.5px;
+    font-size:15px; font-weight:700; letter-spacing:.5px;
     font-family:"Palatino Linotype",Georgia,"Times New Roman",serif;
+    background:linear-gradient(90deg,#cbd5e1,#ffffff 28%,#2dd4bf 52%,#67e8f9 74%,#cbd5e1);
+    background-size:220% auto; -webkit-background-clip:text; background-clip:text;
+    color:transparent; animation:tbShine 5s linear infinite;
   }
+  @keyframes tbShine { to { background-position:-220% center; } }
   .tb-sep { color:#334155; }
   .tb-author {
     font-size:13px; font-weight:700; color:#f43f5e; letter-spacing:.5px; margin-left:-5px;
     font-family:"Palatino Linotype",Georgia,"Times New Roman",serif;
   }
-  .titlebar-btns { display:flex; height:100%; }
+  .titlebar-btns { display:flex; height:100%; align-items:center; }
   .tb-zoompct {
     min-width:46px; text-align:center; font-size:13px; color:#3b82f6; font-weight:600;
     font-family:Consolas,monospace; display:flex; align-items:center; justify-content:center;
@@ -220,6 +225,60 @@ PAGE_HTML = """<!DOCTYPE html>
   .tb-sep { width:1px; height:18px; background:rgba(148,163,184,.28); margin:0 4px; align-self:center; }
   .tb-close:hover { background:#ef4444; color:#fff; }
   .tb-close:active { background:#dc2626; }
+
+  /* 标题栏信息区: 阶段文本 / 状态灯 / 服务地址 / 置顶 / 最大化反馈 */
+  .tb-phase {
+    font-size:12px; color:#7dd3fc; margin-left:6px; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;
+  }
+  .tb-dot { width:8px; height:8px; border-radius:50%; margin-left:12px; flex:none; align-self:center; }
+  .tb-dot.busy { background:#fbbf24; box-shadow:0 0 8px rgba(251,191,36,.7); animation:tbPulse 1s ease-in-out infinite; }
+  .tb-dot.ok   { background:#34d399; box-shadow:0 0 8px rgba(52,211,153,.7); }
+  .tb-dot.err  { background:#f87171; box-shadow:0 0 8px rgba(248,113,113,.7); }
+  @keyframes tbPulse { 50% { opacity:.4; } }
+  .tb-addr {
+    margin-left:8px; font-size:12px; color:#67e8f9; cursor:pointer;
+    font-family:Consolas,monospace; padding:2px 0; line-height:1;
+    user-select:text; white-space:nowrap;
+  }
+  .tb-addr:hover { color:#a5f3fc; }
+  .tb-btn.pin.pinned { color:#ef4444; background:rgba(239,68,68,.16); }
+  .titlebar.maxed { border-bottom-color:rgba(45,212,191,.4); box-shadow:0 1px 10px rgba(45,212,191,.12); }
+
+  /* 标题栏右键菜单 */
+  .tb-menu {
+    position:fixed; z-index:2147483001; min-width:176px; padding:5px;
+    background:rgba(15,23,42,.97); border:1px solid rgba(94,234,212,.25);
+    border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.55);
+    backdrop-filter:blur(10px);
+  }
+  .tb-menu-item {
+    display:block; width:100%; text-align:left; border:none; background:transparent;
+    color:#e2e8f0; font-size:13px; padding:7px 12px; border-radius:7px; cursor:pointer;
+  }
+  .tb-menu-item:hover { background:rgba(45,212,191,.14); color:#fff; }
+  .tb-menu-item.danger { color:#f87171; }
+  .tb-menu-item.danger:hover { background:rgba(248,113,113,.16); }
+
+  /* 关于对话框 */
+  .tb-about { display:none; position:fixed; inset:0; z-index:2147483002;
+    align-items:center; justify-content:center; background:rgba(2,6,23,.6); }
+  .tb-about.show { display:flex; }
+  .tb-about .box {
+    width:340px; max-width:88vw; background:rgba(15,23,42,.98);
+    border:1px solid rgba(94,234,212,.3); border-radius:16px; padding:24px 22px;
+    text-align:center; box-shadow:0 24px 70px rgba(0,0,0,.6);
+  }
+  .tb-about h3 { margin:0 0 6px; color:#fff; letter-spacing:1px; font-size:17px; }
+  .tb-about .ver { color:#67e8f9; font-size:12px; margin-bottom:12px; font-family:Consolas,monospace; }
+  .tb-about p { color:#94a3b8; font-size:12.5px; line-height:1.9; margin:0 0 16px; word-break:break-all; }
+  .tb-about .btns { display:flex; gap:8px; }
+  .tb-about .btn2 {
+    flex:1; border:none; border-radius:9px; padding:8px 0; font-size:13px;
+    cursor:pointer; background:#1e293b; color:#cbd5e1;
+  }
+  .tb-about .btn2:hover { background:#334155; }
+  .tb-about .btn2.link { background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; }
 
   /* 无边框窗口拖拽缩放手柄 */
   .pwv-rz { position:fixed; z-index:29; }
@@ -258,13 +317,17 @@ PAGE_HTML = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <div class="titlebar">
+  <div class="titlebar" id="tbBar">
     <div class="titlebar-left pywebview-drag-region">
-      <span class="tb-logo whale-badge">DSH</span>
+      <span class="tb-logo whale-badge" title="DeepSeek Harness">DSH</span>
       <span class="tb-title">dsh</span>
       <span class="tb-author">@ Mr.chen</span>
+      <span class="tb-phase" id="tbPhase" title=""></span>
     </div>
     <div class="titlebar-btns">
+      <span class="tb-dot busy" id="tbDot" title="处理中…"></span>
+      <span class="tb-addr" id="tbAddr" title="在浏览器中打开"></span>
+      <button class="tb-btn pin" id="btnPin" title="窗口置顶"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z" stroke-linejoin="round"/><path d="M5 11 2.5 13.5" stroke-linecap="round"/></svg></button>
       <button class="tb-btn" id="btnZoomOut" title="缩小"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.6 10.6 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5.2 7h3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
       <span class="tb-zoompct" id="zoomPct">100%</span>
       <button class="tb-btn" id="btnZoomIn" title="放大"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.6 10.6 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7 5.2v3.6M5.2 7h3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
@@ -292,7 +355,7 @@ PAGE_HTML = """<!DOCTYPE html>
       </div>
       <div id="log"></div>
     </div>
-    <div class="foot">DeepSeek Harness Installer · <b>Mr.Chen</b></div>
+    <div class="foot">DeepSeek Harness Installer</div>
   </div>
 
   <div id="modal">
@@ -304,17 +367,44 @@ PAGE_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <div class="tb-about" id="tbAbout">
+    <div class="box">
+      <h3>DeepSeek Harness 安装器</h3>
+      <div class="ver">v1.0.0</div>
+      <p>作者: Mr.Chen<br>一键安装/启动 DeepSeek Harness<br>服务地址: <span id="aboutAddr" style="color:#67e8f9;"></span></p>
+      <div class="btns">
+        <button class="btn2 link" id="aboutSite">平台官网</button>
+        <button class="btn2" id="aboutClose">关闭</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   function $(id){ return document.getElementById(id); }
-  function setStatus(t){ $('stext').textContent = t; }
+  function setDot(state){
+    var d = $('tbDot'); if (!d) return;
+    d.className = 'tb-dot ' + state;
+    d.title = {busy:'处理中…', ok:'就绪', err:'异常'}[state] || '';
+  }
+  function setDotFromText(t){
+    if (/失败|错误|取消/.test(t)) setDot('err');
+    else if (/就绪|通过|完成|已连接/.test(t)) setDot('ok');
+    else setDot('busy');
+  }
+  function setStatus(t){
+    $('stext').textContent = t;
+    var ph = $('tbPhase'); if (ph){ ph.textContent = t; ph.title = t; }
+    setDotFromText(t);
+  }
   function setProgress(v){
     var bar = $('bar'), fill = $('fill'), pct = $('pct');
-    if (v < 0) { bar.classList.add('indeterminate'); pct.textContent = '…'; }
+    if (v < 0) { bar.classList.add('indeterminate'); pct.textContent = '…'; setDot('busy'); }
     else {
       bar.classList.remove('indeterminate');
       var n = Math.max(0, Math.min(100, Math.round(v)));
       fill.style.width = n + '%';
       pct.textContent = n + '%';
+      if (n >= 100) setDot('ok');
     }
   }
   function setStage(t){ $('stage').textContent = t; }
@@ -325,6 +415,19 @@ PAGE_HTML = """<!DOCTYPE html>
     if (line.cls) div.className = line.cls;
     div.appendChild(document.createTextNode(line.text || ''));
     log.appendChild(div);
+    while (log.childNodes.length > 600) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+  // 批量追加(配合 Python 侧日志合并, 减少桥调用)
+  function appendLogs(lines){
+    var log = $('log');
+    for (var i = 0; i < lines.length; i++){
+      var line = lines[i];
+      var div = document.createElement('div');
+      if (line.cls) div.className = line.cls;
+      div.appendChild(document.createTextNode(line.text || ''));
+      log.appendChild(div);
+    }
     while (log.childNodes.length > 600) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
   }
@@ -381,6 +484,7 @@ PAGE_HTML = """<!DOCTYPE html>
   function winToggleMax(){
     _maxed = !_maxed;
     winControl(_maxed ? 'max' : 'restore');
+    var bar = document.querySelector('.titlebar'); if (bar) bar.classList.toggle('maxed', _maxed);
     $('btnMax').innerHTML = _maxed
       ? '<svg viewBox="0 0 16 16"><rect x="3.5" y="5.5" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 3.5H12a.5.5 0 0 1 .5.5v5.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>'
       : '<svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
@@ -391,59 +495,93 @@ PAGE_HTML = """<!DOCTYPE html>
   $('btnMax').addEventListener('click', winToggleMax);
   $('btnClose').addEventListener('click', winClose);
   document.querySelector('.pywebview-drag-region').addEventListener('dblclick', winToggleMax);
-  // 自绘窗口拖拽(替换 pywebview 内置: 修复缩放(ZoomFactor)后拖动错位/顿挫)
+  // 自绘窗口拖拽: 原生系统拖拽 + rAF 逐帧移动双保险。
+  // 原生拖拽生效时系统接管鼠标, 页面收不到后续鼠标事件, 兜底不会触发(顺滑);
+  // 原生拖拽未生效时 mousemove 仍会到达, 由 rAF 兜底完成移动 —— 无论如何都能拖。
   (function(){
     var region = document.querySelector('.pywebview-drag-region');
+    if (!region) return;
+    var dragState = null;
+    function dragFlush(){
+      if (!dragState) return;
+      dragState.raf = 0;
+      if (!dragState.pending) return;
+      var dpr = window.devicePixelRatio || 1;
+      var nx = Math.round(dragState.wx + (dragState.pending.screenX - dragState.sx) / dpr);
+      var ny = Math.round(dragState.wy + (dragState.pending.screenY - dragState.sy) / dpr);
+      dragState.pending = null;
+      var a = getApi();
+      if (a && a.moveWindowTo) a.moveWindowTo(nx, ny);
+    }
+    function dragMove(ev2){
+      if (!dragState) return;
+      dragState.pending = ev2;
+      if (!dragState.raf) dragState.raf = requestAnimationFrame(dragFlush);
+    }
+    function dragUp(){
+      if (!dragState) return;
+      if (dragState.raf){ cancelAnimationFrame(dragState.raf); dragState.raf = 0; }
+      dragFlush();  // 释放前补上最后一帧位置
+      try { region.releasePointerCapture(dragState.pointerId); } catch (e) {}
+      dragState = null;
+    }
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('mouseup', dragUp);
     region.addEventListener('mousedown', function(ev){
       if (ev.button !== 0) return;
       ev.preventDefault();
       ev.stopPropagation();  // 阻止 pywebview 内置拖拽
-      var dpr = window.devicePixelRatio || 1;
-      var sx = ev.screenX, sy = ev.screenY;
-      var wx = window.screenX, wy = window.screenY;
-      function move(ev2){
-        var nx = Math.round(wx + (ev2.screenX - sx) / dpr);
-        var ny = Math.round(wy + (ev2.screenY - sy) / dpr);
-        var api = getApi();
-        if (api && api.moveWindowTo) api.moveWindowTo(nx, ny);
+      dragState = {
+        sx: ev.screenX, sy: ev.screenY,
+        wx: window.screenX, wy: window.screenY,
+        pointerId: ev.pointerId,
+        pending: null, raf: 0
+      };
+      try { region.setPointerCapture(ev.pointerId); } catch (e) {}
+      var a = getApi();
+      if (a && a.startNativeDrag){
+        try { a.startNativeDrag(); } catch (e) {}
       }
-      function up(){
-        window.removeEventListener('mousemove', move);
-        window.removeEventListener('mouseup', up);
-      }
-      window.addEventListener('mousemove', move);
-      window.addEventListener('mouseup', up);
     });
   })();
 
-  // 无边框窗口拖拽缩放(边缘/四角手柄, Pointer 捕获保证拖出窗口外仍生效)
+  // 无边框窗口拖拽缩放: 原生系统缩放 + 逐帧 resizeWindow 双保险(见拖拽注释)。
   var RZ_CFG = { n:{w:0,h:-1}, s:{w:0,h:1}, e:{w:1,h:0}, w:{w:-1,h:0},
                  ne:{w:1,h:-1}, nw:{w:-1,h:-1}, se:{w:1,h:1}, sw:{w:-1,h:1} };
   ['n','s','e','w','ne','nw','se','sw'].forEach(function(edge){
     var el = document.createElement('div');
     el.className = 'pwv-rz pwv-rz-' + edge;
     document.body.appendChild(el);
-    el.addEventListener('pointerdown', function(ev){
-      ev.preventDefault();
-      el.setPointerCapture(ev.pointerId);
+    var rzState = null;
+    function rzMove(ev2){
+      if (!rzState) return;
       var c = RZ_CFG[edge];
       var dpr = window.devicePixelRatio || 1;
-      var sx = ev.screenX, sy = ev.screenY;
-      var sw0 = window.innerWidth, sh0 = window.innerHeight;
-      function move(ev2){
-        if (_maxed) return;
-        var nw = Math.max(1024, sw0 + c.w * (ev2.screenX - sx) / dpr);
-        var nh = Math.max(618,  sh0 + c.h * (ev2.screenY - sy) / dpr);
-        var api = getApi();
-        if (api && api.resizeWindow) api.resizeWindow(nw, nh, edge);
+      var nw = Math.max(1024, rzState.sw0 + c.w * (ev2.screenX - rzState.sx) / dpr);
+      var nh = Math.max(618,  rzState.sh0 + c.h * (ev2.screenY - rzState.sy) / dpr);
+      var a2 = getApi();
+      if (a2 && a2.resizeWindow) a2.resizeWindow(nw, nh, edge);
+    }
+    function rzUp(){
+      if (!rzState) return;
+      try { el.releasePointerCapture(rzState.pointerId); } catch (e) {}
+      rzState = null;
+    }
+    el.addEventListener('pointermove', rzMove);
+    el.addEventListener('pointerup', rzUp);
+    el.addEventListener('pointerdown', function(ev){
+      ev.preventDefault();
+      if (_maxed) return;
+      rzState = {
+        sx: ev.screenX, sy: ev.screenY,
+        sw0: window.innerWidth, sh0: window.innerHeight,
+        pointerId: ev.pointerId
+      };
+      try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+      var a = getApi();
+      if (a && a.startNativeResize){
+        try { a.startNativeResize(edge); } catch (e) {}
       }
-      function up(){
-        try { el.releasePointerCapture(ev.pointerId); } catch (e) {}
-        el.removeEventListener('pointermove', move);
-        el.removeEventListener('pointerup', up);
-      }
-      el.addEventListener('pointermove', move);
-      el.addEventListener('pointerup', up);
     });
   });
   // pywebview 的 JS 桥在页面加载完成(NavigationCompleted)之后才注入,
@@ -459,6 +597,110 @@ PAGE_HTML = """<!DOCTYPE html>
   }
   window.addEventListener('pywebviewready', boot);
   boot();
+
+  // ===== 标题栏增强: 服务地址/复制/置顶/右键菜单/关于 =====
+  function legacyCopy(txt){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+  }
+  function copyText(txt, el){
+    var done = function(){
+      if (el){
+        var orig = el.textContent;
+        el.textContent = '已复制';
+        setTimeout(function(){ el.textContent = orig; }, 1200);
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, function(){ legacyCopy(txt); done(); });
+    } else { legacyCopy(txt); done(); }
+  }
+  function setTitleAddr(url){
+    var el = $('tbAddr'); if (!el) return;
+    el.textContent = url.replace('http://', '').replace('https://', '');
+    el.dataset.url = url;
+    el.title = '服务地址: ' + url + ' (在浏览器中打开)';
+  }
+  var _pinned = false;
+  function pinIconHtml(pinned){
+    return pinned
+      ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z"/><rect x="4.7" y="10.2" width="1.6" height="3.2" rx="0.8" transform="rotate(-45 5.5 11.8)"/></svg>'
+      : '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z" stroke-linejoin="round"/><path d="M5 11 2.5 13.5" stroke-linecap="round"/></svg>';
+  }
+  function togglePin(){
+    var api = getApi();
+    if (!api || typeof api.toggleOnTop !== 'function') return;
+    api.toggleOnTop().then(function(r){
+      if (r && r.ok){
+        _pinned = !!r.on_top;
+        var b = $('btnPin');
+        b.classList.toggle('pinned', _pinned);
+        b.innerHTML = pinIconHtml(_pinned);
+        b.title = _pinned ? '取消置顶' : '窗口置顶';
+      }
+    });
+  }
+  $('btnPin').addEventListener('click', togglePin);
+  $('tbAddr').addEventListener('click', function(){
+    var el = this, u = el.dataset.url || el.textContent;
+    var api = getApi();
+    if (api && api.openUrl) api.openUrl(u);
+  });
+  // 关于对话框
+  function showAbout(){
+    var a = $('tbAbout'); if (!a) return;
+    var addr = $('tbAddr'), aa = $('aboutAddr');
+    if (aa && addr) aa.textContent = addr.dataset.url || addr.textContent;
+    a.classList.add('show');
+  }
+  function hideAbout(){ var a = $('tbAbout'); if (a) a.classList.remove('show'); }
+  $('aboutClose').addEventListener('click', hideAbout);
+  $('aboutSite').addEventListener('click', function(){
+    var api = getApi(); if (api && api.openDeepSeekSite) api.openDeepSeekSite();
+  });
+  $('tbAbout').addEventListener('click', function(ev){ if (ev.target === this) hideAbout(); });
+  // 标题栏右键菜单
+  function closeTbMenu(){
+    var m = document.getElementById('tbMenu'); if (m) m.remove();
+  }
+  function showTbMenu(items, x, y){
+    closeTbMenu();
+    var m = document.createElement('div');
+    m.id = 'tbMenu'; m.className = 'tb-menu';
+    items.forEach(function(it){
+      var b = document.createElement('button');
+      b.className = 'tb-menu-item' + (it.danger ? ' danger' : '');
+      b.textContent = it.label;
+      b.addEventListener('click', function(){ closeTbMenu(); it.fn(); });
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    var r = m.getBoundingClientRect();
+    m.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + 'px';
+    m.style.top  = Math.max(4, Math.min(y, innerHeight - r.height - 6)) + 'px';
+  }
+  document.querySelector('.titlebar').addEventListener('contextmenu', function(ev){
+    if (ev.target.closest && ev.target.closest('.tb-btn')) return;
+    ev.preventDefault();
+    var api = getApi();
+    showTbMenu([
+      { label: '复制服务地址', fn: function(){
+          var addr = $('tbAddr');
+          copyText(addr ? (addr.dataset.url || addr.textContent) : '', addr);
+        } },
+      { label: '打开官网', fn: function(){ if (api && api.openDeepSeekSite) api.openDeepSeekSite(); } },
+      { label: '打开数据目录', fn: function(){ if (api && api.openDataDir) api.openDataDir(); } },
+      { label: '关于', fn: showAbout }
+    ], ev.clientX, ev.clientY);
+  });
+  document.addEventListener('click', closeTbMenu);
+  document.addEventListener('keydown', function(ev){
+    if (ev.key === 'Escape'){ closeTbMenu(); hideAbout(); }
+  });
+  window.addEventListener('blur', closeTbMenu);
 </script>
 </body>
 </html>
@@ -473,6 +715,8 @@ INJECT_TITLEBAR_JS = r'''
   function getApi() {
     return window.py || (window.pywebview && window.pywebview.api) || null;
   }
+  // 安装页驱动的 setTitleAddr 在本页(无该元素)定义为空操作, 避免 eval_js 报错
+  window.setTitleAddr = window.setTitleAddr || function () { return true; };
   try {
     if (document.getElementById('pwv-titlebar')) return;
     var href = location.href || '';
@@ -491,9 +735,14 @@ INJECT_TITLEBAR_JS = r'''
       '#pwv-titlebar .pwv-logo{width:24px;height:24px;border-radius:7px;font-size:11px;font-weight:800;',
       'display:inline-flex;align-items:center;justify-content:center;',
       'background:linear-gradient(135deg,#0d9488,#2dd4bf);color:#042f2e;}',
-      '#pwv-titlebar .pwv-logo img{width:15px;height:15px;display:block;}',
+      '#pwv-titlebar .pwv-logo img{width:15px;height:15px;display:block;transition:transform .2s ease;}',
+      '#pwv-titlebar .pwv-logo:hover img{transform:translateY(-1px) scale(1.12);}',
       '#pwv-titlebar .pwv-title{font-size:15px;font-weight:700;letter-spacing:.5px;',
-      'font-family:"Palatino Linotype",Georgia,"Times New Roman",serif;}',
+      'font-family:"Palatino Linotype",Georgia,"Times New Roman",serif;',
+      'background:linear-gradient(90deg,var(--dsw-alias-label-primary,#cbd5e1),#ffffff 28%,#2dd4bf 52%,#67e8f9 74%,var(--dsw-alias-label-primary,#cbd5e1));',
+      'background-size:220% auto;-webkit-background-clip:text;background-clip:text;',
+      'color:transparent;animation:pwvShine 5s linear infinite;}',
+      '@keyframes pwvShine{to{background-position:-220% center;}}',
       '#pwv-titlebar .pwv-author{margin-left:-5px;font-size:13px;font-weight:700;color:#f43f5e;',
       'letter-spacing:.5px;font-family:"Palatino Linotype",Georgia,"Times New Roman",serif;}',
       '#pwv-titlebar .pwv-btns{display:flex;height:100%;}',
@@ -548,8 +797,43 @@ INJECT_TITLEBAR_JS = r'''
       '.pwv-pbtn{flex:1;border:none;border-radius:8px;padding:7px 0;font-size:12px;cursor:pointer;',
       'background:var(--dsw-alias-interactive-bg-hover,rgba(148,163,184,.18));color:inherit;}',
       '.pwv-pbtn:hover{filter:brightness(1.15);}',
+      // 浅色主题下 interactive-bg-hover 会解析成接近白色, 按钮几乎不可见;
+      // 无 data-ds-dark-theme(浅色)时加深为稳定的中性灰。
+      'body:not([data-ds-dark-theme]) .pwv-pbtn{background:rgba(100,116,139,.28);}',
       '.pwv-link{background:linear-gradient(135deg,#0d9488,#2dd4bf);color:#042f2e;font-weight:700;}',
-      '.pwv-note{font-size:10.5px;opacity:.55;margin-top:9px;line-height:1.5;}'
+      '.pwv-note{font-size:10.5px;opacity:.55;margin-top:9px;line-height:1.5;}',
+      '.pwv-dot{width:8px;height:8px;border-radius:50%;margin-left:10px;flex:none;align-self:center;}',
+      '.pwv-dot.ok{background:#34d399;box-shadow:0 0 8px rgba(52,211,153,.7);}',
+      '.pwv-addr{margin-left:8px;font-size:12px;color:var(--dsw-alias-accent,#67e8f9);cursor:pointer;',
+      'font-family:Consolas,monospace;padding:2px 0;line-height:1;',
+      'user-select:text;white-space:nowrap;}',
+      '.pwv-addr:hover{opacity:.85;}',
+      '.pwv-btn.pin.pinned{color:#ef4444;background:rgba(239,68,68,.16);}',
+      '#pwv-titlebar.maxed{border-bottom-color:rgba(45,212,191,.4);box-shadow:0 1px 10px rgba(45,212,191,.12);}',
+      '.pwv-menu{position:fixed;z-index:2147483001;min-width:176px;padding:5px;',
+      'background:var(--dsw-alias-bg-layer-1,rgba(15,23,42,.97));',
+      'border:1px solid var(--dsw-alias-border-l2,rgba(94,234,212,.25));',
+      'border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.55);}',
+      '.pwv-menu-item{display:block;width:100%;text-align:left;border:none;background:transparent;',
+      'color:var(--dsw-alias-label-primary,#e2e8f0);font-size:13px;padding:7px 12px;',
+      'border-radius:7px;cursor:pointer;}',
+      '.pwv-menu-item:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(45,212,191,.16));color:var(--dsw-alias-accent,#2dd4bf);}',
+      '.pwv-menu-item.danger{color:#f87171;}',
+      '.pwv-menu-item.danger:hover{background:rgba(248,113,113,.16);}',
+      '.pwv-about{display:none;position:fixed;inset:0;z-index:2147483002;',
+      'align-items:center;justify-content:center;background:rgba(2,6,23,.6);}',
+      '.pwv-about.show{display:flex;}',
+      '.pwv-about .box{width:340px;max-width:88vw;background:var(--dsw-alias-bg-layer-1,rgba(15,23,42,.98));',
+      'border:1px solid var(--dsw-alias-border-l2,rgba(94,234,212,.3));border-radius:16px;',
+      'padding:24px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);}',
+      '.pwv-about h3{margin:0 0 6px;color:var(--dsw-alias-label-primary,#fff);letter-spacing:1px;font-size:17px;}',
+      '.pwv-about .ver{color:var(--dsw-alias-accent,#67e8f9);font-size:12px;margin-bottom:12px;font-family:Consolas,monospace;}',
+      '.pwv-about p{color:var(--dsw-alias-label-secondary,#94a3b8);font-size:12.5px;line-height:1.9;margin:0 0 16px;word-break:break-all;}',
+      '.pwv-about .btns{display:flex;gap:8px;}',
+      '.pwv-about .btn2{flex:1;border:none;border-radius:9px;padding:8px 0;font-size:13px;cursor:pointer;',
+      'background:var(--dsw-alias-interactive-bg-hover,rgba(148,163,184,.18));color:inherit;}',
+      '.pwv-about .btn2:hover{filter:brightness(1.2);}',
+      '.pwv-about .btn2.link{background:linear-gradient(135deg,#0d9488,#2dd4bf);color:#042f2e;font-weight:700;}'
     ].join('');
     (document.head || document.documentElement).appendChild(style);
 
@@ -557,11 +841,15 @@ INJECT_TITLEBAR_JS = r'''
     tb.id = 'pwv-titlebar';
     tb.innerHTML =
       '<div class="pwv-left pywebview-drag-region">' +
-      '<span class="pwv-logo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDUwIDUwIiBmaWxsPSJub25lIj48cGF0aCBkPSJNNDguODM1NCAxMC4wNDc5QzQ4LjMyMzIgOS43OTE5OSA0OC4xMDI1IDEwLjI3OTggNDcuODAzMiAxMC41Mjc4QzQ3LjcwMDcgMTAuNjA3OSA0Ny42MTQzIDEwLjcxMTkgNDcuNTI3MyAxMC44MDc2QzQ2Ljc3OTMgMTEuNjI0IDQ1LjkwNDggMTIuMTU5NyA0NC43NjIyIDEyLjA5NTdDNDMuMDkyMyAxMiA0MS42NjYgMTIuNTM1NiA0MC40MDU4IDEzLjgzOThDNDAuMTM3NyAxMi4yMzE5IDM5LjI0NzYgMTEuMjcyIDM3Ljg5MjYgMTAuNjU1OEMzNy4xODM2IDEwLjMzNTkgMzYuNDY2OCAxMC4wMTU2IDM1Ljk3MDIgOS4zMTk4MkMzNS42MjM1IDguODIzNzMgMzUuNTI5MyA4LjI3MTk3IDM1LjM1NiA3LjcyNzU0QzM1LjI0NTYgNy4zOTk5IDM1LjEzNTMgNy4wNjM5NiAzNC43NjUxIDcuMDA3ODFDMzQuMzYzMyA2Ljk0Mzg1IDM0LjIwNTYgNy4yODc2IDM0LjA0NzkgNy41NzU2OEMzMy40MTggOC43NTE5NSAzMy4xNzMzIDEwLjA0NzkgMzMuMTk3MyAxMS4zNTk5QzMzLjI1MjQgMTQuMzEyIDM0LjQ3MzYgMTYuNjY0MSAzNi44OTk5IDE4LjMzNTlDMzcuMTc1OCAxOC41Mjc4IDM3LjI0NjYgMTguNzE5NyAzNy4xNTk3IDE5QzM2Ljk5NDYgMTkuNTc1NyAzNi43OTc0IDIwLjEzNTcgMzYuNjI0IDIwLjcxMTlDMzYuNTEzNyAyMS4wODAxIDM2LjM0ODYgMjEuMTU5NyAzNS45NjI0IDIxQzM0LjYzMDkgMjAuNDMyMSAzMy40ODEgMTkuNTkxOCAzMi40NjQ0IDE4LjU3NTdDMzAuNzM5MyAxNi44NzIxIDI5LjE3OTIgMTQuOTkxNyAyNy4yMzM0IDEzLjUyQzI2Ljc3NjQgMTMuMTc1OCAyNi4zMTkzIDEyLjg1NiAyNS44NDY3IDEyLjU1MThDMjMuODYxOCAxMC41ODQgMjYuMTA2OSA4Ljk2Nzc3IDI2LjYyNyA4Ljc3NTg4QzI3LjE3MDQgOC41NzU2OCAyNi44MTU5IDcuODg3NyAyNS4wNTkxIDcuODk2QzIzLjMwMjIgNy45MDM4MSAyMS42OTUzIDguNTAzOTEgMTkuNjQ3IDkuMzAzNzFDMTkuMzQ3NyA5LjQyMzgzIDE5LjAzMjIgOS41MTE3MiAxOC43MDk1IDkuNTgzOThDMTYuODUwMSA5LjIyMzYzIDE0LjkxOTkgOS4xNDM1NSAxMi45MDMzIDkuMzc1OThDOS4xMDU5NiA5LjgwNzYyIDYuMDcyNzUgMTEuNjM5NiAzLjg0MzI2IDE0Ljc2ODFDMS4xNjQ1NSAxOC41Mjc4IDAuNTM0MTggMjIuNzk5OCAxLjMwNjY0IDI3LjI1NTlDMi4xMTc2OCAzMS45NTIxIDQuNDY1ODIgMzUuODM5OCA4LjA3MzczIDM4Ljg3OTlDMTEuODE1OSA0Mi4wMzIyIDE2LjEyNTUgNDMuNTc2MiAyMS4wNDEgNDMuMjgwM0MyNC4wMjY5IDQzLjEwNCAyNy4zNTE2IDQyLjY5NjMgMzEuMTAxNiAzOS40NTYxQzMyLjA0NjkgMzkuOTM2IDMzLjAzOTYgNDAuMTI3OSAzNC42ODYgNDAuMjcyQzM1Ljk1NDYgNDAuMzkyMSAzNy4xNzU4IDQwLjIwOCAzOC4xMjExIDQwLjAwNzhDMzkuNjAyMSAzOS42ODggMzkuNDk5NSAzOC4yODgxIDM4Ljk2MzkgMzguMDMyMkMzNC42MjMgMzUuOTY3OCAzNS41NzYyIDM2LjgwODEgMzQuNzEgMzYuMTI3OUMzNi45MTU1IDMzLjQ2MzkgNDAuMjQwMiAzMC42OTU4IDQxLjU0IDIxLjcyOEM0MS42NDI2IDIxLjAxNjEgNDEuNTU1NyAyMC41Njc5IDQxLjU0IDE5Ljk5MTdDNDEuNTMyMiAxOS42Mzk2IDQxLjYxMDggMTkuNTAzOSA0Mi4wMDQ5IDE5LjQ2MzlDNDMuMDkyMyAxOS4zMzU5IDQ0LjE0NzkgMTkuMDMxNyA0NS4xMTY3IDE4LjQ4NzhDNDcuOTI5MiAxNi45MTk5IDQ5LjA2NCAxNC4zNDM4IDQ5LjMzMTUgMTEuMjU1OUM0OS4zNzExIDEwLjc4MzcgNDkuMzIzNyAxMC4yOTU5IDQ4LjgzNTQgMTAuMDQ3OVpNMjQuMzI2MiAzNy44Mzk4QzIwLjExOTYgMzQuNDYzOSAxOC4wNzkxIDMzLjM1MjEgMTcuMjM1OCAzMy4zOTk5QzE2LjQ0ODIgMzMuNDQ4MiAxNi41ODk4IDM0LjM2ODIgMTYuNzYzMiAzNC45Njc4QzE2Ljk0NDMgMzUuNTYwMSAxNy4xODEyIDM1Ljk2ODMgMTcuNTExNyAzNi40ODc4QzE3Ljc0MDIgMzYuODMyIDE3Ljg5NzkgMzcuMzQ0MiAxNy4yODMyIDM3LjcyOEMxNS45MjgyIDM4LjU4NCAxMy41NzI4IDM3LjQzOTkgMTMuNDYyNCAzNy4zODM4QzEwLjcyMDcgMzUuNzM1OCA4LjQyODIyIDMzLjU2MDEgNi44MTM0OCAzMC41ODRDNS4yNTM0MiAyNy43MTk3IDQuMzQ3NjYgMjQuNjQ3OSA0LjE5Nzc1IDIxLjM2NzdDNC4xNTgyIDIwLjU3NTcgNC4zODY3MiAyMC4yOTU5IDUuMTU4NjkgMjAuMTUxOUM2LjE3NTI5IDE5Ljk2IDcuMjIzMTQgMTkuOTE5OSA4LjIzOTI2IDIwLjA3MThDMTIuNTMyNyAyMC43MTE5IDE2LjE4ODUgMjIuNjcxOSAxOS4yNTI5IDI1Ljc3NTlDMjEuMDAyIDI3LjU0MzkgMjIuMzI1MiAyOS42NTU4IDIzLjY4ODUgMzEuNzIwMkMyNS4xMzc3IDMzLjkxMjEgMjYuNjk3OCAzNiAyOC42ODMxIDM3LjcxMTlDMjkuMzg0MyAzOC4zMTIgMjkuOTQzNCAzOC43NjgxIDMwLjQ3OSAzOS4xMDRDMjguODY0MyAzOS4yODgxIDI2LjE2OTkgMzkuMzI4MSAyNC4zMjYyIDM3LjgzOThaTTI2LjM0MzMgMjQuNjAwMUMyNi4zNDMzIDI0LjI0OCAyNi42MTkxIDIzLjk2NzggMjYuOTY1OCAyMy45Njc4QzI3LjA0NDQgMjMuOTY3OCAyNy4xMTUyIDIzLjk4MzkgMjcuMTc4MiAyNC4wMDc4QzI3LjI2NTEgMjQuMDQgMjcuMzQzOCAyNC4wODc5IDI3LjQwNjcgMjQuMTYwMkMyNy41MTcxIDI0LjI3MiAyNy41ODAxIDI0LjQzMjEgMjcuNTgwMSAyNC42MDAxQzI3LjU4MDEgMjQuOTUyMSAyNy4zMDQyIDI1LjIzMTkgMjYuOTU3NSAyNS4yMzE5QzI2LjYxMDggMjUuMjMxOSAyNi4zNDMzIDI0Ljk1MjEgMjYuMzQzMyAyNC42MDAxWk0zMi42MDY0IDI3Ljg3OTlDMzIuMjA0NiAyOC4wNDc5IDMxLjgwMjcgMjguMTkxOSAzMS40MTY1IDI4LjIwOEMzMC44MTc5IDI4LjIzOTcgMzAuMTY0MSAyNy45OTIyIDI5LjgwOTYgMjcuNjg4QzI5LjI1ODMgMjcuMjE1OCAyOC44NjQzIDI2Ljk1MjEgMjguNjk4NyAyNi4xMjc5QzI4LjYyNzkgMjUuNzc1OSAyOC42Njc1IDI1LjIzMTkgMjguNzMwNSAyNC45MTk5QzI4Ljg3MjEgMjQuMjQ4IDI4LjcxNDQgMjMuODE1OSAyOC4yNDk1IDIzLjQyMzhDMjcuODcxNiAyMy4xMDQgMjcuMzkxMSAyMy4wMTYxIDI2Ljg2MzMgMjMuMDE2MUMyNi42NjYgMjMuMDE2MSAyNi40ODQ5IDIyLjkyNzcgMjYuMzUxMSAyMi44NTZDMjYuMTMwNCAyMi43NDQxIDI1Ljk0OTIgMjIuNDYzOSAyNi4xMjI2IDIyLjEyMDFDMjYuMTc3NyAyMi4wMDc4IDI2LjQ0NTggMjEuNzM1OCAyNi41MDg4IDIxLjY4OEMyNy4yMjU2IDIxLjI3MiAyOC4wNTI3IDIxLjQwNzcgMjguODE2OSAyMS43MTk3QzI5LjUyNTkgMjIuMDE2MSAzMC4wNjE1IDIyLjU2MDEgMzAuODM0IDIzLjMyODFDMzEuNjIxNiAyNC4yNTU5IDMxLjc2MzIgMjQuNTExNyAzMi4yMTI0IDI1LjIwOEMzMi41NjY5IDI1Ljc1MiAzMi44OTAxIDI2LjMxMiAzMy4xMTA0IDI2Ljk1MjFDMzMuMjQ0NiAyNy4zNTIxIDMzLjA3MTMgMjcuNjgwMiAzMi42MDY0IDI3Ljg3OTlaIiBmaWxsPSIjZmZmZmZmIi8+PC9zdmc+" alt="DSH"></span>' +
+      '<span class="pwv-logo" title="DeepSeek Harness"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDUwIDUwIiBmaWxsPSJub25lIj48cGF0aCBkPSJNNDguODM1NCAxMC4wNDc5QzQ4LjMyMzIgOS43OTE5OSA0OC4xMDI1IDEwLjI3OTggNDcuODAzMiAxMC41Mjc4QzQ3LjcwMDcgMTAuNjA3OSA0Ny42MTQzIDEwLjcxMTkgNDcuNTI3MyAxMC44MDc2QzQ2Ljc3OTMgMTEuNjI0IDQ1LjkwNDggMTIuMTU5NyA0NC43NjIyIDEyLjA5NTdDNDMuMDkyMyAxMiA0MS42NjYgMTIuNTM1NiA0MC40MDU4IDEzLjgzOThDNDAuMTM3NyAxMi4yMzE5IDM5LjI0NzYgMTEuMjcyIDM3Ljg5MjYgMTAuNjU1OEMzNy4xODM2IDEwLjMzNTkgMzYuNDY2OCAxMC4wMTU2IDM1Ljk3MDIgOS4zMTk4MkMzNS42MjM1IDguODIzNzMgMzUuNTI5MyA4LjI3MTk3IDM1LjM1NiA3LjcyNzU0QzM1LjI0NTYgNy4zOTk5IDM1LjEzNTMgNy4wNjM5NiAzNC43NjUxIDcuMDA3ODFDMzQuMzYzMyA2Ljk0Mzg1IDM0LjIwNTYgNy4yODc2IDM0LjA0NzkgNy41NzU2OEMzMy40MTggOC43NTE5NSAzMy4xNzMzIDEwLjA0NzkgMzMuMTk3MyAxMS4zNTk5QzMzLjI1MjQgMTQuMzEyIDM0LjQ3MzYgMTYuNjY0MSAzNi44OTk5IDE4LjMzNTlDMzcuMTc1OCAxOC41Mjc4IDM3LjI0NjYgMTguNzE5NyAzNy4xNTk3IDE5QzM2Ljk5NDYgMTkuNTc1NyAzNi43OTc0IDIwLjEzNTcgMzYuNjI0IDIwLjcxMTlDMzYuNTEzNyAyMS4wODAxIDM2LjM0ODYgMjEuMTU5NyAzNS45NjI0IDIxQzM0LjYzMDkgMjAuNDMyMSAzMy40ODEgMTkuNTkxOCAzMi40NjQ0IDE4LjU3NTdDMzAuNzM5MyAxNi44NzIxIDI5LjE3OTIgMTQuOTkxNyAyNy4yMzM0IDEzLjUyQzI2Ljc3NjQgMTMuMTc1OCAyNi4zMTkzIDEyLjg1NiAyNS44NDY3IDEyLjU1MThDMjMuODYxOCAxMC41ODQgMjYuMTA2OSA4Ljk2Nzc3IDI2LjYyNyA4Ljc3NTg4QzI3LjE3MDQgOC41NzU2OCAyNi44MTU5IDcuODg3NyAyNS4wNTkxIDcuODk2QzIzLjMwMjIgNy45MDM4MSAyMS42OTUzIDguNTAzOTEgMTkuNjQ3IDkuMzAzNzFDMTkuMzQ3NyA5LjQyMzgzIDE5LjAzMjIgOS41MTE3MiAxOC43MDk1IDkuNTgzOThDMTYuODUwMSA5LjIyMzYzIDE0LjkxOTkgOS4xNDM1NSAxMi45MDMzIDkuMzc1OThDOS4xMDU5NiA5LjgwNzYyIDYuMDcyNzUgMTEuNjM5NiAzLjg0MzI2IDE0Ljc2ODFDMS4xNjQ1NSAxOC41Mjc4IDAuNTM0MTggMjIuNzk5OCAxLjMwNjY0IDI3LjI1NTlDMi4xMTc2OCAzMS45NTIxIDQuNDY1ODIgMzUuODM5OCA4LjA3MzczIDM4Ljg3OTlDMTEuODE1OSA0Mi4wMzIyIDE2LjEyNTUgNDMuNTc2MiAyMS4wNDEgNDMuMjgwM0MyNC4wMjY5IDQzLjEwNCAyNy4zNTE2IDQyLjY5NjMgMzEuMTAxNiAzOS40NTYxQzMyLjA0NjkgMzkuOTM2IDMzLjAzOTYgNDAuMTI3OSAzNC42ODYgNDAuMjcyQzM1Ljk1NDYgNDAuMzkyMSAzNy4xNzU4IDQwLjIwOCAzOC4xMjExIDQwLjAwNzhDMzkuNjAyMSAzOS42ODggMzkuNDk5NSAzOC4yODgxIDM4Ljk2MzkgMzguMDMyMkMzNC42MjMgMzUuOTY3OCAzNS41NzYyIDM2LjgwODEgMzQuNzEgMzYuMTI3OUMzNi45MTU1IDMzLjQ2MzkgNDAuMjQwMiAzMC42OTU4IDQxLjU0IDIxLjcyOEM0MS42NDI2IDIxLjAxNjEgNDEuNTU1NyAyMC41Njc5IDQxLjU0IDE5Ljk5MTdDNDEuNTMyMiAxOS42Mzk2IDQxLjYxMDggMTkuNTAzOSA0Mi4wMDQ5IDE5LjQ2MzlDNDMuMDkyMyAxOS4zMzU5IDQ0LjE0NzkgMTkuMDMxNyA0NS4xMTY3IDE4LjQ4NzhDNDcuOTI5MiAxNi45MTk5IDQ5LjA2NCAxNC4zNDM4IDQ5LjMzMTUgMTEuMjU1OUM0OS4zNzExIDEwLjc4MzcgNDkuMzIzNyAxMC4yOTU5IDQ4LjgzNTQgMTAuMDQ3OVpNMjQuMzI2MiAzNy44Mzk4QzIwLjExOTYgMzQuNDYzOSAxOC4wNzkxIDMzLjM1MjEgMTcuMjM1OCAzMy4zOTk5QzE2LjQ0ODIgMzMuNDQ4MiAxNi41ODk4IDM0LjM2ODIgMTYuNzYzMiAzNC45Njc4QzE2Ljk0NDMgMzUuNTYwMSAxNy4xODEyIDM1Ljk2ODMgMTcuNTExNyAzNi40ODc4QzE3Ljc0MDIgMzYuODMyIDE3Ljg5NzkgMzcuMzQ0MiAxNy4yODMyIDM3LjcyOEMxNS45MjgyIDM4LjU4NCAxMy41NzI4IDM3LjQzOTkgMTMuNDYyNCAzNy4zODM4QzEwLjcyMDcgMzUuNzM1OCA4LjQyODIyIDMzLjU2MDEgNi44MTM0OCAzMC41ODRDNS4yNTM0MiAyNy43MTk3IDQuMzQ3NjYgMjQuNjQ3OSA0LjE5Nzc1IDIxLjM2NzdDNC4xNTgyIDIwLjU3NTcgNC4zODY3MiAyMC4yOTU5IDUuMTU4NjkgMjAuMTUxOUM2LjE3NTI5IDE5Ljk2IDcuMjIzMTQgMTkuOTE5OSA4LjIzOTI2IDIwLjA3MThDMTIuNTMyNyAyMC43MTE5IDE2LjE4ODUgMjIuNjcxOSAxOS4yNTI5IDI1Ljc3NTlDMjEuMDAyIDI3LjU0MzkgMjIuMzI1MiAyOS42NTU4IDIzLjY4ODUgMzEuNzIwMkMyNS4xMzc3IDMzLjkxMjEgMjYuNjk3OCAzNiAyOC42ODMxIDM3LjcxMTlDMjkuMzg0MyAzOC4zMTIgMjkuOTQzNCAzOC43NjgxIDMwLjQ3OSAzOS4xMDRDMjguODY0MyAzOS4yODgxIDI2LjE2OTkgMzkuMzI4MSAyNC4zMjYyIDM3LjgzOThaTTI2LjM0MzMgMjQuNjAwMUMyNi4zNDMzIDI0LjI0OCAyNi42MTkxIDIzLjk2NzggMjYuOTY1OCAyMy45Njc4QzI3LjA0NDQgMjMuOTY3OCAyNy4xMTUyIDIzLjk4MzkgMjcuMTc4MiAyNC4wMDc4QzI3LjI2NTEgMjQuMDQgMjcuMzQzOCAyNC4wODc5IDI3LjQwNjcgMjQuMTYwMkMyNy41MTcxIDI0LjI3MiAyNy41ODAxIDI0LjQzMjEgMjcuNTgwMSAyNC42MDAxQzI3LjU4MDEgMjQuOTUyMSAyNy4zMDQyIDI1LjIzMTkgMjYuOTU3NSAyNS4yMzE5QzI2LjYxMDggMjUuMjMxOSAyNi4zNDMzIDI0Ljk1MjEgMjYuMzQzMyAyNC42MDAxWk0zMi42MDY0IDI3Ljg3OTlDMzIuMjA0NiAyOC4wNDc5IDMxLjgwMjcgMjguMTkxOSAzMS40MTY1IDI4LjIwOEMzMC44MTc5IDI4LjIzOTcgMzAuMTY0MSAyNy45OTIyIDI5LjgwOTYgMjcuNjg4QzI5LjI1ODMgMjcuMjE1OCAyOC44NjQzIDI2Ljk1MjEgMjguNjk4NyAyNi4xMjc5QzI4LjYyNzkgMjUuNzc1OSAyOC42Njc1IDI1LjIzMTkgMjguNzMwNSAyNC45MTk5QzI4Ljg3MjEgMjQuMjQ4IDI4LjcxNDQgMjMuODE1OSAyOC4yNDk1IDIzLjQyMzhDMjcuODcxNiAyMy4xMDQgMjcuMzkxMSAyMy4wMTYxIDI2Ljg2MzMgMjMuMDE2MUMyNi42NjYgMjMuMDE2MSAyNi40ODQ5IDIyLjkyNzcgMjYuMzUxMSAyMi44NTZDMjYuMTMwNCAyMi43NDQxIDI1Ljk0OTIgMjIuNDYzOSAyNi4xMjI2IDIyLjEyMDFDMjYuMTc3NyAyMi4wMDc4IDI2LjQ0NTggMjEuNzM1OCAyNi41MDg4IDIxLjY4OEMyNy4yMjU2IDIxLjI3MiAyOC4wNTI3IDIxLjQwNzcgMjguODE2OSAyMS43MTk3QzI5LjUyNTkgMjIuMDE2MSAzMC4wNjE1IDIyLjU2MDEgMzAuODM0IDIzLjMyODFDMzEuNjIxNiAyNC4yNTU5IDMxLjc2MzIgMjQuNTExNyAzMi4yMTI0IDI1LjIwOEMzMi41NjY5IDI1Ljc1MiAzMi44OTAxIDI2LjMxMiAzMy4xMTA0IDI2Ljk1MjFDMzMuMjQ0NiAyNy4zNTIxIDMzLjA3MTMgMjcuNjgwMiAzMi42MDY0IDI3Ljg3OTlaIiBmaWxsPSIjZmZmZmZmIi8+PC9zdmc+" alt="DSH"></span>' +
       '<span class="pwv-title">dsh</span>' +
       '<span class="pwv-author">@ Mr.chen</span>' +
+      '<span class="pwv-dot ok" title="服务在线"></span>' +
+      '<span class="pwv-addr" id="pwv-addr" title="在浏览器中打开"></span>' +
       '</div>' +
       '<div class="pwv-btns">' +
+      '<button class="pwv-btn pin" id="pwv-pin" title="窗口置顶">' +
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z" stroke-linejoin="round"/><path d="M5 11 2.5 13.5" stroke-linecap="round"/></svg></button>' +
       '<button class="pwv-btn pwv-theme" title="切换深色/浅色主题">' +
       '<svg viewBox="0 0 16 16"><path d="M13 9.3A5.5 5.5 0 1 1 6.7 3a4.4 4.4 0 0 0 6.3 6.3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>' +
       '<span class="pwv-sep"></span>' +
@@ -595,32 +883,58 @@ INJECT_TITLEBAR_JS = r'''
     function toggleMax() {
       maxed = !maxed;
       ctl(maxed ? 'max' : 'restore');
+      tb.classList.toggle('maxed', maxed);
       refreshMax();
     }
     tb.querySelector('.pwv-min').addEventListener('click', function () { ctl('min'); });
     tb.querySelector('.pwv-max').addEventListener('click', toggleMax);
     tb.querySelector('.pwv-close').addEventListener('click', function () { ctl('close'); });
     tb.querySelector('.pwv-left').addEventListener('dblclick', toggleMax);
-    // 自绘窗口拖拽(替换 pywebview 内置: 修复缩放后拖动错位/顿挫)
-    tb.querySelector('.pwv-left').addEventListener('mousedown', function (ev) {
+    // 自绘窗口拖拽: 原生系统拖拽 + rAF 逐帧移动双保险。
+    // 原生拖拽生效时系统接管鼠标, 页面收不到后续鼠标事件, 兜底不会触发(顺滑);
+    // 原生拖拽未生效时 mousemove 仍会到达, 由 rAF 兜底完成移动 —— 无论如何都能拖。
+    var dragLeft = tb.querySelector('.pwv-left');
+    var dragState = null;
+    function dragFlush() {
+      if (!dragState) return;
+      dragState.raf = 0;
+      if (!dragState.pending) return;
+      var dpr = window.devicePixelRatio || 1;
+      var nx = Math.round(dragState.wx + (dragState.pending.screenX - dragState.sx) / dpr);
+      var ny = Math.round(dragState.wy + (dragState.pending.screenY - dragState.sy) / dpr);
+      dragState.pending = null;
+      var a = getApi();
+      if (a && a.moveWindowTo) a.moveWindowTo(nx, ny);
+    }
+    function dragMove(ev2) {
+      if (!dragState) return;
+      dragState.pending = ev2;
+      if (!dragState.raf) dragState.raf = requestAnimationFrame(dragFlush);
+    }
+    function dragUp() {
+      if (!dragState) return;
+      if (dragState.raf) { cancelAnimationFrame(dragState.raf); dragState.raf = 0; }
+      dragFlush();  // 释放前补上最后一帧位置
+      try { dragLeft.releasePointerCapture(dragState.pointerId); } catch (e) {}
+      dragState = null;
+    }
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('mouseup', dragUp);
+    dragLeft.addEventListener('mousedown', function (ev) {
       if (ev.button !== 0) return;
       ev.preventDefault();
       ev.stopPropagation();
-      var dpr = window.devicePixelRatio || 1;
-      var sx = ev.screenX, sy = ev.screenY;
-      var wx = window.screenX, wy = window.screenY;
-      function move(ev2) {
-        var nx = Math.round(wx + (ev2.screenX - sx) / dpr);
-        var ny = Math.round(wy + (ev2.screenY - sy) / dpr);
-        var a = getApi();
-        if (a && a.moveWindowTo) a.moveWindowTo(nx, ny);
+      dragState = {
+        sx: ev.screenX, sy: ev.screenY,
+        wx: window.screenX, wy: window.screenY,
+        pointerId: ev.pointerId,
+        pending: null, raf: 0
+      };
+      try { dragLeft.setPointerCapture(ev.pointerId); } catch (e) {}
+      var a = getApi();
+      if (a && a.startNativeDrag) {
+        try { a.startNativeDrag(); } catch (e) {}
       }
-      function up() {
-        window.removeEventListener('mousemove', move);
-        window.removeEventListener('mouseup', up);
-      }
-      window.addEventListener('mousemove', move);
-      window.addEventListener('mouseup', up);
     });
 
     // 缩放控件(类似浏览器缩放; 内容区缩放, 标题栏不缩放)
@@ -656,12 +970,22 @@ INJECT_TITLEBAR_JS = r'''
     // 主题快捷切换: 直接改写 ~/.dsh/settings.yaml 的 ui-theme.preference,
     // DSH 的 settings-file 监听器(热重载)会广播给界面实时应用 —— 不再模拟点击
     // 设置面板, 不受 DSH 界面结构/类名变化影响。
+    // 目标 = 当前"视觉主题"的反面(body 上的 data-ds-dark-theme 由 DSH
+    // ThemePresenter 维护, 用户看到什么就是什么)。旧逻辑按 preference 字符串
+    // 取反, preference=system 或样式检测失败时目标可能与当前视觉相同, 写盘后
+    // 视觉无变化 → "点了不生效"; 连点还会把刚写的值写回去, 同样像没生效。
     function _currentDshTheme() {
+      // 1) DSH 实际应用的视觉主题(最可靠)
+      try {
+        if (document.body.hasAttribute('data-ds-dark-theme')) return 'dark';
+        return 'light';
+      } catch (e) {}
+      // 2) 兜底: colorScheme
       try {
         var cs = (getComputedStyle(document.documentElement).colorScheme || '').toLowerCase();
         if (cs === 'dark' || cs === 'light') return cs;
       } catch (e) {}
-      // 兜底: 用标题栏实际背景亮度判断(跟随主题的 --dsw 变量)
+      // 3) 兜底: 标题栏背景亮度(跟随主题的 --dsw 变量)
       try {
         var tbEl = document.getElementById('pwv-titlebar');
         if (tbEl) {
@@ -673,38 +997,63 @@ INJECT_TITLEBAR_JS = r'''
           }
         }
       } catch (e) {}
-      return null;
+      return 'dark';   // 全失败按默认深色处理, 绝不空转
     }
     // 主题按钮图标随主题变化: 深色 -> 白色月亮, 浅色 -> 红色太阳
-    function updateThemeIcon() {
-      var btn = tb.querySelector('.pwv-theme');
-      if (!btn) return;
-      var cur = _currentDshTheme();
-      if (cur === 'light') {
-        btn.innerHTML = '<svg viewBox="0 0 16 16" style="color:#f43f5e">' +
+    function themeIconHtml(cur) {
+      return cur === 'light'
+        ? '<svg viewBox="0 0 16 16" style="color:#f43f5e">' +
           '<circle cx="8" cy="8" r="3.1" fill="currentColor"/>' +
           '<path d="M8 1.3v1.9M8 12.8v1.9M1.3 8h1.9M12.8 8h1.9M3.2 3.2l1.35 1.35M11.45 11.45l1.35 1.35M12.8 3.2l-1.35 1.35M4.55 11.45l-1.35 1.35" ' +
-          'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
-      } else {
-        btn.innerHTML = '<svg viewBox="0 0 16 16" style="color:#ffffff">' +
+          'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'
+        : '<svg viewBox="0 0 16 16" style="color:#ffffff">' +
           '<path d="M13.2 9.4A5.6 5.6 0 1 1 6.6 2.8a4.5 4.5 0 0 0 6.6 6.6z" fill="currentColor"/></svg>';
-      }
+    }
+    function updateThemeIcon(cur) {
+      var btn = tb.querySelector('.pwv-theme');
+      if (!btn) return;
+      if (cur === undefined) cur = _currentDshTheme();
+      btn.innerHTML = themeIconHtml(cur);
     }
     updateThemeIcon();
     // 轮询兜底(覆盖在设置面板手动切主题/外部改设置的情况)
-    setInterval(updateThemeIcon, 800);
+    setInterval(function () { updateThemeIcon(); }, 800);
+
+    var themeLastClick = 0;     // 连点合并: 600ms 内的重复点击视为一次
+    var themeRetryTimer = null;
     tb.querySelector('.pwv-theme').addEventListener('click', function () {
-      var cur = _currentDshTheme();
-      if (!cur) return;
       var a = getApi();
-      if (a && a.setTheme) {
-        a.setTheme(cur === 'dark' ? 'light' : 'dark');
+      if (!a || !a.setTheme) return;
+      var now = Date.now();
+      if (now - themeLastClick < 600) return;   // 吞掉连点, 避免把刚写的值写回去
+      themeLastClick = now;
+      if (themeRetryTimer) { clearTimeout(themeRetryTimer); themeRetryTimer = null; }
+
+      var cur = _currentDshTheme();
+      var next = cur === 'dark' ? 'light' : 'dark';
+      updateThemeIcon(next);       // 立即按目标反馈, 不等 DSH 热重载(约 100~300ms)
+      var p = a.setTheme(next);
+      function afterApply() {
+        // 分级延时刷新图标, 跟随 DSH 实际应用节奏
+        setTimeout(updateThemeIcon, 250);
+        setTimeout(updateThemeIcon, 600);
+        setTimeout(updateThemeIcon, 1200);
+        // 自愈: 若 900ms 后视觉仍未切换(文件监听偶尔漏事件), 强制重写文件再触发
+        themeRetryTimer = setTimeout(function () {
+          themeRetryTimer = null;
+          var isDark = _currentDshTheme() === 'dark';
+          if (isDark !== (next === 'dark')) {
+            var a2 = getApi();
+            if (a2 && a2.setTheme) a2.setTheme(next, true);
+          }
+        }, 900);
       }
-      // 主题由 DSH 热重载应用(约 100~300ms), 分级延时刷新图标
-      updateThemeIcon();
-      setTimeout(updateThemeIcon, 250);
-      setTimeout(updateThemeIcon, 600);
-      setTimeout(updateThemeIcon, 1200);
+      if (p && typeof p.then === 'function') {
+        p.then(function (r) { if (!r || !r.ok) updateThemeIcon(); afterApply(); },
+               function () { updateThemeIcon(); });
+      } else {
+        afterApply();
+      }
     });
 
     // ---- 右下角宠物挂件(DeepSeek 账户信息; 随应用存在, 换机重装也有) ----
@@ -746,8 +1095,7 @@ INJECT_TITLEBAR_JS = r'''
       var infos = r.data && r.data.balance_infos;
       if (infos && infos.length) {
         var i = infos[0];
-        el.innerHTML = '\u00A5 ' + i.total_balance +
-          '<div class="pwv-sub">充值 ' + i.topped_up_balance + ' \u00B7 赠送 ' + i.granted_balance + '</div>';
+        el.innerHTML = '\u00A5 ' + i.total_balance;
       } else {
         el.innerHTML = '暂无余额信息';
       }
@@ -855,36 +1203,157 @@ INJECT_TITLEBAR_JS = r'''
       }
     }, true);
 
-    // 无边框窗口拖拽缩放(边缘/四角手柄)
+    // 无边框窗口拖拽缩放: 原生系统缩放 + 逐帧 resizeWindow 双保险(见拖拽注释)。
     var RZ_CFG = { n:{w:0,h:-1}, s:{w:0,h:1}, e:{w:1,h:0}, w:{w:-1,h:0},
                    ne:{w:1,h:-1}, nw:{w:-1,h:-1}, se:{w:1,h:1}, sw:{w:-1,h:1} };
     ['n','s','e','w','ne','nw','se','sw'].forEach(function (edge) {
       var el = document.createElement('div');
       el.className = 'pwv-rz pwv-rz-' + edge;
       document.body.appendChild(el);
-      el.addEventListener('pointerdown', function (ev) {
-        ev.preventDefault();
-        el.setPointerCapture(ev.pointerId);
+      var rzState = null;
+      function rzMove(ev2) {
+        if (!rzState) return;
         var c = RZ_CFG[edge];
         var dpr = window.devicePixelRatio || 1;
-        var sx = ev.screenX, sy = ev.screenY;
-        var sw0 = window.innerWidth, sh0 = window.innerHeight;
-        function move(ev2) {
-          if (maxed) return;
-          var nw = Math.max(1024, sw0 + c.w * (ev2.screenX - sx) / dpr);
-          var nh = Math.max(618,  sh0 + c.h * (ev2.screenY - sy) / dpr);
-          var a2 = getApi();
-          if (a2 && a2.resizeWindow) a2.resizeWindow(nw, nh, edge);
+        var nw = Math.max(1024, rzState.sw0 + c.w * (ev2.screenX - rzState.sx) / dpr);
+        var nh = Math.max(618,  rzState.sh0 + c.h * (ev2.screenY - rzState.sy) / dpr);
+        var a2 = getApi();
+        if (a2 && a2.resizeWindow) a2.resizeWindow(nw, nh, edge);
+      }
+      function rzUp() {
+        if (!rzState) return;
+        try { el.releasePointerCapture(rzState.pointerId); } catch (e) {}
+        rzState = null;
+      }
+      el.addEventListener('pointermove', rzMove);
+      el.addEventListener('pointerup', rzUp);
+      el.addEventListener('pointerdown', function (ev) {
+        ev.preventDefault();
+        if (maxed) return;
+        rzState = {
+          sx: ev.screenX, sy: ev.screenY,
+          sw0: window.innerWidth, sh0: window.innerHeight,
+          pointerId: ev.pointerId
+        };
+        try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+        var a = getApi();
+        if (a && a.startNativeResize) {
+          try { a.startNativeResize(edge); } catch (e) {}
         }
-        function up() {
-          try { el.releasePointerCapture(ev.pointerId); } catch (e) {}
-          el.removeEventListener('pointermove', move);
-          el.removeEventListener('pointerup', up);
-        }
-        el.addEventListener('pointermove', move);
-        el.addEventListener('pointerup', up);
       });
     });
+    // ===== 标题栏增强: 地址显示/复制/置顶/右键菜单/关于 =====
+    function legacyCopy(txt) {
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function copyText(txt, el) {
+      var done = function () {
+        if (el) {
+          var orig = el.textContent;
+          el.textContent = '已复制';
+          setTimeout(function () { el.textContent = orig; }, 1200);
+        }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, function () { legacyCopy(txt); done(); });
+      } else { legacyCopy(txt); done(); }
+    }
+    // 在线状态 + 实际服务地址(取自 location.origin)
+    var pwvAddrEl = document.getElementById('pwv-addr');
+    if (pwvAddrEl) {
+      var origin = location.origin;
+      pwvAddrEl.textContent = origin.replace(/^https?:\/\//, '');
+      pwvAddrEl.dataset.url = origin;
+      pwvAddrEl.title = '服务地址: ' + origin + ' (在浏览器中打开)';
+      pwvAddrEl.addEventListener('click', function () {
+        var a = getApi();
+        if (a && a.openUrl) a.openUrl(origin);
+      });
+      // 地址在拖拽区域内: 阻止 mousedown 冒泡, 点击时不会误触发窗口拖拽
+      pwvAddrEl.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    }
+    // 置顶开关: 置顶后图标切换为红色实心图钉
+    function pwvPinIconHtml(pinned) {
+      return pinned
+        ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z"/><rect x="4.7" y="10.2" width="1.6" height="3.2" rx="0.8" transform="rotate(-45 5.5 11.8)"/></svg>'
+        : '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M9.7 1.8 14.2 6.3l-4 .9-2.6 2.6-3.4.2.9-3.4 2.6-2.6z" stroke-linejoin="round"/><path d="M5 11 2.5 13.5" stroke-linecap="round"/></svg>';
+    }
+    var pwvPinned = false;
+    var pwvPinBtn = tb.querySelector('#pwv-pin');
+    pwvPinBtn.addEventListener('click', function () {
+      var a = getApi();
+      if (!a || !a.toggleOnTop) return;
+      a.toggleOnTop().then(function (r) {
+        if (r && r.ok) {
+          pwvPinned = !!r.on_top;
+          pwvPinBtn.classList.toggle('pinned', pwvPinned);
+          pwvPinBtn.innerHTML = pwvPinIconHtml(pwvPinned);
+          pwvPinBtn.title = pwvPinned ? '取消置顶' : '窗口置顶';
+        }
+      });
+    });
+    // 关于对话框
+    function pwvShowAbout() {
+      if (document.getElementById('pwv-about')) return;
+      var ov = document.createElement('div');
+      ov.className = 'pwv-about show';
+      ov.id = 'pwv-about';
+      ov.innerHTML =
+        '<div class="box"><h3>DeepSeek Harness 安装器</h3>' +
+        '<div class="ver">v1.0.0</div>' +
+        '<p>作者: Mr.Chen<br>一键安装/启动 DeepSeek Harness<br>服务地址: <span class="pwv-about-addr"></span></p>' +
+        '<div class="btns"><button class="btn2 link" id="pwv-about-site">平台官网</button>' +
+        '<button class="btn2" id="pwv-about-close">关闭</button></div></div>';
+      document.body.appendChild(ov);
+      var aa = ov.querySelector('.pwv-about-addr');
+      if (aa) aa.textContent = location.origin;
+      ov.addEventListener('click', function (ev) { if (ev.target === ov) ov.remove(); });
+      ov.querySelector('#pwv-about-close').addEventListener('click', function () { ov.remove(); });
+      ov.querySelector('#pwv-about-site').addEventListener('click', function () {
+        var a = getApi(); if (a && a.openDeepSeekSite) a.openDeepSeekSite();
+      });
+    }
+    // 标题栏右键菜单
+    function pwvCloseMenu() {
+      var m = document.getElementById('pwv-menu'); if (m) m.remove();
+    }
+    function pwvShowMenu(items, x, y) {
+      pwvCloseMenu();
+      var m = document.createElement('div');
+      m.id = 'pwv-menu'; m.className = 'pwv-menu';
+      items.forEach(function (it) {
+        var b = document.createElement('button');
+        b.className = 'pwv-menu-item' + (it.danger ? ' danger' : '');
+        b.textContent = it.label;
+        b.addEventListener('click', function () { pwvCloseMenu(); it.fn(); });
+        m.appendChild(b);
+      });
+      document.body.appendChild(m);
+      var r = m.getBoundingClientRect();
+      m.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + 'px';
+      m.style.top = Math.max(4, Math.min(y, innerHeight - r.height - 6)) + 'px';
+    }
+    tb.addEventListener('contextmenu', function (ev) {
+      if (ev.target.closest && ev.target.closest('.pwv-btn')) return;
+      ev.preventDefault();
+      var a = getApi();
+      pwvShowMenu([
+        { label: '打开官网', fn: function () { if (a && a.openDeepSeekSite) a.openDeepSeekSite(); } },
+        { label: '刷新页面', fn: function () { location.reload(); } },
+        { label: '复制服务地址', fn: function () { copyText(location.origin, pwvAddrEl); } },
+        { label: '打开数据目录', fn: function () { if (a && a.openDataDir) a.openDataDir(); } },
+        { label: '关于应用', fn: pwvShowAbout }
+      ], ev.clientX, ev.clientY);
+    });
+    document.addEventListener('click', pwvCloseMenu);
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') pwvCloseMenu();
+    });
+    window.addEventListener('blur', pwvCloseMenu);
   } catch (e) {}
 })();
 '''

@@ -188,6 +188,150 @@ print(f"[{'PASS' if ok_i else 'FAIL'}] I-start-worker-resolves-run-install  targ
 if not ok_i:
     failures.append("I-start-worker-resolves-run-install")
 
+# J: 标题栏增强 API(动态任务栏标题/置顶/数据目录/返回安装器)
+import time as _time
+import dshapp.utils as _utils_mod
+
+
+class _FakeWin:
+    def __init__(self):
+        self.title = None
+        self.on_top = False
+        self.loads = []
+        self.urls = []
+
+    def load_html(self, h):
+        self.loads.append(h)
+
+    def load_url(self, u):
+        self.urls.append(u)
+
+    def destroy(self):
+        pass
+
+    def evaluate_js(self, code):
+        pass
+
+
+_fw = _FakeWin()
+_api3 = m.Api()
+_api3._window = _fw
+ok_j = True
+_api3.ui_stage("检查环境")
+if _fw.title != "dsh · 检查环境":
+    ok_j = False
+r_j1 = _api3.toggleOnTop()
+r_j2 = _api3.toggleOnTop()
+if not (r_j1.get("ok") and r_j1.get("on_top") is True and r_j2.get("on_top") is False):
+    ok_j = False
+_orig_sf = getattr(_utils_mod.os, "startfile", None)
+if _orig_sf is not None:
+    _utils_mod.os.startfile = lambda p: None
+try:
+    if _api3.openDataDir() is not True:
+        ok_j = False
+finally:
+    if _orig_sf is not None:
+        _utils_mod.os.startfile = _orig_sf
+if _api3.backToInstaller() is not True or len(_fw.loads) != 1:
+    ok_j = False
+_time.sleep(1.3)  # 等 backToInstaller 的定时器触发(非守护线程)
+print(f"[{'PASS' if ok_j else 'FAIL'}] J-titlebar-apis  title={_fw.title!r} loads={len(_fw.loads)}")
+if not ok_j:
+    failures.append("J-titlebar-apis")
+
+# K: toggleOnTop 的 UI 线程封送路径(回归: js_api 桥在后台线程, 直写 WinForms TopMost
+#    会触发 .NET 跨线程未处理异常崩溃 0xCFFFFFFF; 修复后经 form.Invoke 封送到 UI 线程)
+class _FakeNative:
+    def __init__(self):
+        self.TopMost = False
+        self.invoked = 0
+
+    def Invoke(self, action):
+        self.invoked += 1
+        action()
+
+
+class _FakeWin2:
+    def __init__(self):
+        self.title = None
+        self.on_top = False
+        self.native = _FakeNative()
+
+    def load_html(self, h):
+        pass
+
+    def evaluate_js(self, code):
+        pass
+
+
+try:
+    from System import Action  # noqa: F401  (pythonnet 可用性探测)
+    _sys_ok = True
+except Exception:
+    _sys_ok = False
+
+if _sys_ok:
+    _fw2 = _FakeWin2()
+    _api4 = m.Api()
+    _api4._window = _fw2
+    _r1 = _api4.toggleOnTop()
+    _r2 = _api4.toggleOnTop()
+    ok_k = (_r1.get("ok") and _r1.get("on_top") is True
+            and _r2.get("ok") and _r2.get("on_top") is False
+            and _fw2.native.TopMost is False and _fw2.native.invoked == 2)
+    print(f"[{'PASS' if ok_k else 'FAIL'}] K-toggleOnTop-UI-thread-marshal  "
+          f"r1={_r1} r2={_r2} invoked={_fw2.native.invoked}")
+    if not ok_k:
+        failures.append("K-toggleOnTop-UI-thread-marshal")
+else:
+    print("[SKIP] K-toggleOnTop-UI-thread-marshal  (pythonnet 不可用, 跳过 Invoke 路径验证)")
+
+# T: _scan_usage 的 mtime 预过滤与 zstd 流式解压(旧文件跳过/新文件正确统计)
+# 注: 沙箱环境下只能在项目根目录建临时文件(新建子目录写入会被拒), 用完即删。
+import datetime as _dt3
+import json as _json3
+import os as _os3
+
+_TROOT = _os3.path.dirname(_os3.path.abspath(__file__))
+_old_p = _os3.path.join(_TROOT, "_usage_test_old.jsonl")
+_new_p = _os3.path.join(_TROOT, "_usage_test_new.jsonl")
+_z_p = _os3.path.join(_TROOT, "_usage_test_newz.jsonl.zstd")
+try:
+    _today_ms = _dt3.datetime.combine(_dt3.date.today(), _dt3.time.min).timestamp() * 1000
+    _ev = {"type": "assistant/message", "time": _today_ms + 5000,
+           "data": {"usage": {"inputTokens": 100, "outputTokens": 200}}}
+    # old.jsonl: 文件 mtime 两天前, 但事件时间戳是今天 -> 应被 mtime 过滤跳过
+    with open(_old_p, "w", encoding="utf-8") as f:
+        f.write(_json3.dumps(_ev) + "\n")
+    _yesterday = (_dt3.datetime.now() - _dt3.timedelta(days=2)).timestamp()
+    _os3.utime(_old_p, (_yesterday, _yesterday))
+    # new.jsonl + newz.jsonl.zstd: mtime 今天 -> 应被统计
+    with open(_new_p, "w", encoding="utf-8") as f:
+        f.write(_json3.dumps(_ev) + "\n")
+    import zstandard as _zstd3
+    _comp = _zstd3.ZstdCompressor().compress(_json3.dumps(_ev).encode("utf-8") + b"\n")
+    with open(_z_p, "wb") as f:
+        f.write(_comp)
+    _now_ts = _time.time()
+    _os3.utime(_new_p, (_now_ts, _now_ts))
+    _os3.utime(_z_p, (_now_ts, _now_ts))
+
+    _usage_res = m.Api()._scan_usage(_TROOT, _today_ms)
+    _u_tokens = _usage_res["data"]["today"]["tokens"]
+    _u_reqs = _usage_res["data"]["today"]["requests"]
+    # 期望: new.jsonl(300/1) + newz.jsonl.zstd(300/1) = 600 tokens / 2 reqs; old 被过滤
+    ok_t = (_u_tokens == 600 and _u_reqs == 2)
+    print(f"[{'PASS' if ok_t else 'FAIL'}] T-usage-scan-mtime-filter  tokens={_u_tokens} reqs={_u_reqs}")
+    if not ok_t:
+        failures.append("T-usage-scan-mtime-filter")
+finally:
+    for _p in (_old_p, _new_p, _z_p):
+        try:
+            _os3.remove(_p)
+        except OSError:
+            pass
+
 print()
 if failures:
     print("结果: %d 项失败 -> %s" % (len(failures), failures))

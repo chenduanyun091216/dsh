@@ -13,6 +13,7 @@ import queue
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -195,3 +196,18 @@ def stream_cmd(cmd, api, timeout=1800, pulse=True, label=None):
     kill_tree(proc)
     api.ui_log("命令执行超时。", "err")
     return False
+
+
+def open_folder(path):
+    """跨平台打开文件夹(资源管理器 / Finder / xdg-open); 不存在则先创建。"""
+    try:
+        os.makedirs(path, exist_ok=True)
+        if os.name == "nt":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
+        return True
+    except Exception:
+        return False
