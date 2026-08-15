@@ -17,6 +17,8 @@ Python · pywebview · 自绘无边框窗口 · 内嵌实时终端
 
 一个开箱即用的 **DeepSeek Harness 桌面客户端**：打开程序 → 自动检查 Node.js（要求 **≥ v24**）→ 缺失或版本过低时在界面内一键安装/更新 → 自动执行 `npx @deepseek-ai/dsh web` 下载并启动 Harness → 服务就绪后**在同一个窗口**打开 Harness 页面，全程可视化进度条 + 实时终端输出。
 
+[dsh.dist.zip](https://github.com/chenduanyun091216/dsh/releases/download/untagged-cb01fa95cfcc7315606b/dsh.dist.zip)
+
 ## ✨ 功能特性
 
 | 类别 | 说明 |
