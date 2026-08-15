@@ -1,0 +1,3 @@
+pywebview>=4.0
+# 读取 DSH 会话日志(session.jsonl.zstd)以统计今日 Token 用量/消费(宠物面板)
+zstandard>=0.22
